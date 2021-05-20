@@ -1,0 +1,939 @@
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"ADC_SAR_Seq_1_PM.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.ADC_SAR_Seq_1_Sleep,"ax",%progbits
+  20              		.align	2
+  21              		.global	ADC_SAR_Seq_1_Sleep
+  22              		.thumb
+  23              		.thumb_func
+  24              		.type	ADC_SAR_Seq_1_Sleep, %function
+  25              	ADC_SAR_Seq_1_Sleep:
+  26              	.LFB0:
+  27              		.file 1 "Generated_Source\\PSoC5\\ADC_SAR_Seq_1_PM.c"
+   1:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** /*******************************************************************************
+   2:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * File Name: ADC_SAR_Seq_1_PM.c
+   3:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Version 2.10
+   4:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+   5:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Description:
+   6:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  This file contains the setup, control and status commands to support
+   7:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  component operations in low power mode.
+   8:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+   9:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Note:
+  10:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+  11:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** ********************************************************************************
+  12:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Copyright 2012-2015, Cypress Semiconductor Corporation.  All rights reserved.
+  13:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * You may use this file only in accordance with the license, terms, conditions,
+  14:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * disclaimers, and limitations in the end user license agreement accompanying
+  15:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * the software package with which this file was provided.
+  16:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *******************************************************************************/
+  17:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** 
+  18:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** #include "ADC_SAR_Seq_1.h"
+  19:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** #include "ADC_SAR_Seq_1_SAR.h"
+  20:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** #if(ADC_SAR_Seq_1_CLOCK_SOURCE == ADC_SAR_Seq_1_CLOCK_INTERNAL)
+  21:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     #include "ADC_SAR_Seq_1_IntClock.h"
+  22:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** #endif   /* ADC_SAR_Seq_1_CLOCK_SOURCE == ADC_SAR_Seq_1_CLOCK_INTERNAL */
+  23:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** 
+  24:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** 
+  25:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** /*******************************************************************************
+  26:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Function Name: ADC_SAR_Seq_1_Sleep
+  27:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** ********************************************************************************
+  28:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+  29:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Summary:
+  30:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  Stops the ADC operation and saves the configuration registers and component
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 2
+
+
+  31:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  enable state. Should be called just prior to entering sleep
+  32:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+  33:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Parameters:
+  34:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  None.
+  35:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+  36:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Return:
+  37:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  None.
+  38:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+  39:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Side Effects:
+  40:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  None.
+  41:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+  42:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Reentrant:
+  43:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  No.
+  44:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+  45:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *******************************************************************************/
+  46:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** void ADC_SAR_Seq_1_Sleep(void)
+  47:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** {
+  28              		.loc 1 47 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32 0000 08B5     		push	{r3, lr}
+  33              		.cfi_def_cfa_offset 8
+  34              		.cfi_offset 3, -8
+  35              		.cfi_offset 14, -4
+  48:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     ADC_SAR_Seq_1_SAR_Stop();
+  36              		.loc 1 48 0
+  37 0002 FFF7FEFF 		bl	ADC_SAR_Seq_1_SAR_Stop
+  38              	.LVL0:
+  49:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     ADC_SAR_Seq_1_SAR_Sleep();
+  39              		.loc 1 49 0
+  40 0006 FFF7FEFF 		bl	ADC_SAR_Seq_1_SAR_Sleep
+  41              	.LVL1:
+  50:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     ADC_SAR_Seq_1_Disable();
+  42              		.loc 1 50 0
+  43 000a FFF7FEFF 		bl	ADC_SAR_Seq_1_Disable
+  44              	.LVL2:
+  51:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** 
+  52:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     #if(ADC_SAR_Seq_1_CLOCK_SOURCE == ADC_SAR_Seq_1_CLOCK_INTERNAL)
+  53:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****         ADC_SAR_Seq_1_IntClock_Stop();
+  45              		.loc 1 53 0
+  46 000e FFF7FEFF 		bl	ADC_SAR_Seq_1_IntClock_Stop
+  47              	.LVL3:
+  48 0012 08BD     		pop	{r3, pc}
+  49              		.cfi_endproc
+  50              	.LFE0:
+  51              		.size	ADC_SAR_Seq_1_Sleep, .-ADC_SAR_Seq_1_Sleep
+  52              		.section	.text.ADC_SAR_Seq_1_Wakeup,"ax",%progbits
+  53              		.align	2
+  54              		.global	ADC_SAR_Seq_1_Wakeup
+  55              		.thumb
+  56              		.thumb_func
+  57              		.type	ADC_SAR_Seq_1_Wakeup, %function
+  58              	ADC_SAR_Seq_1_Wakeup:
+  59              	.LFB1:
+  54:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     #endif   /* ADC_SAR_Seq_1_CLOCK_SOURCE == ADC_SAR_Seq_1_CLOCK_INTERNAL */
+  55:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** }
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 3
+
+
+  56:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** 
+  57:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** 
+  58:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** /*******************************************************************************
+  59:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Function Name: ADC_SAR_Seq_1_Wakeup
+  60:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** ********************************************************************************
+  61:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+  62:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Summary:
+  63:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  Restores the component enable state and configuration registers. This should
+  64:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  be called just after awaking from sleep mode
+  65:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+  66:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Parameters:
+  67:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  None.
+  68:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+  69:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Return:
+  70:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  None.
+  71:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+  72:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Side Effects:
+  73:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  None.
+  74:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+  75:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Reentrant:
+  76:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  No.
+  77:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+  78:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *******************************************************************************/
+  79:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** void ADC_SAR_Seq_1_Wakeup(void)
+  80:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** {
+  60              		.loc 1 80 0
+  61              		.cfi_startproc
+  62              		@ args = 0, pretend = 0, frame = 0
+  63              		@ frame_needed = 0, uses_anonymous_args = 0
+  64 0000 08B5     		push	{r3, lr}
+  65              		.cfi_def_cfa_offset 8
+  66              		.cfi_offset 3, -8
+  67              		.cfi_offset 14, -4
+  81:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     ADC_SAR_Seq_1_SAR_Wakeup();
+  68              		.loc 1 81 0
+  69 0002 FFF7FEFF 		bl	ADC_SAR_Seq_1_SAR_Wakeup
+  70              	.LVL4:
+  82:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     ADC_SAR_Seq_1_SAR_Enable();
+  71              		.loc 1 82 0
+  72 0006 FFF7FEFF 		bl	ADC_SAR_Seq_1_SAR_Enable
+  73              	.LVL5:
+  83:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** 
+  84:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     #if(ADC_SAR_Seq_1_CLOCK_SOURCE == ADC_SAR_Seq_1_CLOCK_INTERNAL)
+  85:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****         ADC_SAR_Seq_1_IntClock_Start();
+  74              		.loc 1 85 0
+  75 000a FFF7FEFF 		bl	ADC_SAR_Seq_1_IntClock_Start
+  76              	.LVL6:
+  86:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     #endif   /* ADC_SAR_Seq_1_CLOCK_SOURCE == ADC_SAR_Seq_1_CLOCK_INTERNAL */
+  87:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** 
+  88:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     /* The block is ready to use 10 us after the SAR enable signal is set high. */
+  89:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     CyDelayUs(10u);
+  77              		.loc 1 89 0
+  78 000e 0A20     		movs	r0, #10
+  79 0010 FFF7FEFF 		bl	CyDelayUs
+  80              	.LVL7:
+  90:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     
+  91:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     ADC_SAR_Seq_1_Enable();
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 4
+
+
+  81              		.loc 1 91 0
+  82 0014 FFF7FEFF 		bl	ADC_SAR_Seq_1_Enable
+  83              	.LVL8:
+  92:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** 
+  93:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     #if(ADC_SAR_Seq_1_SAMPLE_MODE == ADC_SAR_Seq_1_SAMPLE_MODE_FREE_RUNNING)
+  94:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****         ADC_SAR_Seq_1_SAR_StartConvert();
+  84              		.loc 1 94 0
+  85 0018 FFF7FEFF 		bl	ADC_SAR_Seq_1_SAR_StartConvert
+  86              	.LVL9:
+  95:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     #endif /* (ADC_SAR_Seq_1_SAMPLE_MODE == ADC_SAR_Seq_1_SAMPLE_MODE_FREE_RUNNING) */
+  96:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** 
+  97:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c ****     (void) CY_GET_REG8(ADC_SAR_Seq_1_STATUS_PTR);
+  87              		.loc 1 97 0
+  88 001c 014B     		ldr	r3, .L5
+  89 001e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+  90 0020 08BD     		pop	{r3, pc}
+  91              	.L6:
+  92 0022 00BF     		.align	2
+  93              	.L5:
+  94 0024 6B650040 		.word	1073767787
+  95              		.cfi_endproc
+  96              	.LFE1:
+  97              		.size	ADC_SAR_Seq_1_Wakeup, .-ADC_SAR_Seq_1_Wakeup
+  98              		.section	.text.ADC_SAR_Seq_1_SaveConfig,"ax",%progbits
+  99              		.align	2
+ 100              		.global	ADC_SAR_Seq_1_SaveConfig
+ 101              		.thumb
+ 102              		.thumb_func
+ 103              		.type	ADC_SAR_Seq_1_SaveConfig, %function
+ 104              	ADC_SAR_Seq_1_SaveConfig:
+ 105              	.LFB2:
+  98:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** }
+  99:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** 
+ 100:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** 
+ 101:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** /*******************************************************************************
+ 102:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Function Name: ADC_SAR_Seq_1_SaveConfig
+ 103:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** ********************************************************************************
+ 104:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+ 105:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Summary:
+ 106:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  Save the current configuration of ADC non-retention registers
+ 107:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+ 108:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Parameters:
+ 109:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  None.
+ 110:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+ 111:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Return:
+ 112:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  None.
+ 113:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+ 114:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Side Effects:
+ 115:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  None.
+ 116:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+ 117:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Reentrant:
+ 118:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  No.
+ 119:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+ 120:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *******************************************************************************/
+ 121:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** void ADC_SAR_Seq_1_SaveConfig(void)
+ 122:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** {
+ 106              		.loc 1 122 0
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 5
+
+
+ 107              		.cfi_startproc
+ 108              		@ args = 0, pretend = 0, frame = 0
+ 109              		@ frame_needed = 0, uses_anonymous_args = 0
+ 110              		@ link register save eliminated.
+ 111 0000 7047     		bx	lr
+ 112              		.cfi_endproc
+ 113              	.LFE2:
+ 114              		.size	ADC_SAR_Seq_1_SaveConfig, .-ADC_SAR_Seq_1_SaveConfig
+ 115 0002 00BF     		.section	.text.ADC_SAR_Seq_1_RestoreConfig,"ax",%progbits
+ 116              		.align	2
+ 117              		.global	ADC_SAR_Seq_1_RestoreConfig
+ 118              		.thumb
+ 119              		.thumb_func
+ 120              		.type	ADC_SAR_Seq_1_RestoreConfig, %function
+ 121              	ADC_SAR_Seq_1_RestoreConfig:
+ 122              	.LFB3:
+ 123:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** 
+ 124:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** }
+ 125:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** 
+ 126:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** 
+ 127:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** /*******************************************************************************
+ 128:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Function Name: ADC_SAR_Seq_1_RestoreConfig
+ 129:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** ********************************************************************************
+ 130:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+ 131:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Summary:
+ 132:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  Restores the configuration of ADC non-retention registers
+ 133:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+ 134:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Parameters:
+ 135:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  None.
+ 136:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+ 137:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Return:
+ 138:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  None.
+ 139:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+ 140:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Side Effects:
+ 141:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  None.
+ 142:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+ 143:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** * Reentrant:
+ 144:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *  No.
+ 145:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *
+ 146:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** *******************************************************************************/
+ 147:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** void ADC_SAR_Seq_1_RestoreConfig(void)
+ 148:Generated_Source\PSoC5/ADC_SAR_Seq_1_PM.c **** {
+ 123              		.loc 1 148 0
+ 124              		.cfi_startproc
+ 125              		@ args = 0, pretend = 0, frame = 0
+ 126              		@ frame_needed = 0, uses_anonymous_args = 0
+ 127              		@ link register save eliminated.
+ 128 0000 7047     		bx	lr
+ 129              		.cfi_endproc
+ 130              	.LFE3:
+ 131              		.size	ADC_SAR_Seq_1_RestoreConfig, .-ADC_SAR_Seq_1_RestoreConfig
+ 132 0002 00BF     		.text
+ 133              	.Letext0:
+ 134              		.file 2 "Generated_Source\\PSoC5\\cytypes.h"
+ 135              		.file 3 "Generated_Source\\PSoC5\\ADC_SAR_Seq_1_SAR.h"
+ 136              		.file 4 "Generated_Source\\PSoC5\\ADC_SAR_Seq_1.h"
+ 137              		.file 5 "Generated_Source\\PSoC5\\ADC_SAR_Seq_1_IntClock.h"
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 6
+
+
+ 138              		.file 6 "Generated_Source\\PSoC5\\CyLib.h"
+ 139              		.section	.debug_info,"",%progbits
+ 140              	.Ldebug_info0:
+ 141 0000 C7010000 		.4byte	0x1c7
+ 142 0004 0400     		.2byte	0x4
+ 143 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 144 000a 04       		.byte	0x4
+ 145 000b 01       		.uleb128 0x1
+ 146 000c DF000000 		.4byte	.LASF30
+ 147 0010 0C       		.byte	0xc
+ 148 0011 34000000 		.4byte	.LASF31
+ 149 0015 08020000 		.4byte	.LASF32
+ 150 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 151 001d 00000000 		.4byte	0
+ 152 0021 00000000 		.4byte	.Ldebug_line0
+ 153 0025 02       		.uleb128 0x2
+ 154 0026 01       		.byte	0x1
+ 155 0027 06       		.byte	0x6
+ 156 0028 F9020000 		.4byte	.LASF0
+ 157 002c 02       		.uleb128 0x2
+ 158 002d 01       		.byte	0x1
+ 159 002e 08       		.byte	0x8
+ 160 002f D1000000 		.4byte	.LASF1
+ 161 0033 02       		.uleb128 0x2
+ 162 0034 02       		.byte	0x2
+ 163 0035 05       		.byte	0x5
+ 164 0036 BB020000 		.4byte	.LASF2
+ 165 003a 02       		.uleb128 0x2
+ 166 003b 02       		.byte	0x2
+ 167 003c 07       		.byte	0x7
+ 168 003d 5E000000 		.4byte	.LASF3
+ 169 0041 02       		.uleb128 0x2
+ 170 0042 04       		.byte	0x4
+ 171 0043 05       		.byte	0x5
+ 172 0044 E4020000 		.4byte	.LASF4
+ 173 0048 02       		.uleb128 0x2
+ 174 0049 04       		.byte	0x4
+ 175 004a 07       		.byte	0x7
+ 176 004b 72010000 		.4byte	.LASF5
+ 177 004f 02       		.uleb128 0x2
+ 178 0050 08       		.byte	0x8
+ 179 0051 05       		.byte	0x5
+ 180 0052 8F020000 		.4byte	.LASF6
+ 181 0056 02       		.uleb128 0x2
+ 182 0057 08       		.byte	0x8
+ 183 0058 07       		.byte	0x7
+ 184 0059 6F020000 		.4byte	.LASF7
+ 185 005d 03       		.uleb128 0x3
+ 186 005e 04       		.byte	0x4
+ 187 005f 05       		.byte	0x5
+ 188 0060 696E7400 		.ascii	"int\000"
+ 189 0064 02       		.uleb128 0x2
+ 190 0065 04       		.byte	0x4
+ 191 0066 07       		.byte	0x7
+ 192 0067 FB010000 		.4byte	.LASF8
+ 193 006b 04       		.uleb128 0x4
+ 194 006c 84010000 		.4byte	.LASF12
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 7
+
+
+ 195 0070 02       		.byte	0x2
+ 196 0071 C2       		.byte	0xc2
+ 197 0072 2C000000 		.4byte	0x2c
+ 198 0076 02       		.uleb128 0x2
+ 199 0077 04       		.byte	0x4
+ 200 0078 04       		.byte	0x4
+ 201 0079 B6000000 		.4byte	.LASF9
+ 202 007d 02       		.uleb128 0x2
+ 203 007e 08       		.byte	0x8
+ 204 007f 04       		.byte	0x4
+ 205 0080 B8010000 		.4byte	.LASF10
+ 206 0084 02       		.uleb128 0x2
+ 207 0085 01       		.byte	0x1
+ 208 0086 08       		.byte	0x8
+ 209 0087 9D020000 		.4byte	.LASF11
+ 210 008b 05       		.uleb128 0x5
+ 211 008c 6D010000 		.4byte	.LASF13
+ 212 0090 02       		.byte	0x2
+ 213 0091 6C01     		.2byte	0x16c
+ 214 0093 97000000 		.4byte	0x97
+ 215 0097 06       		.uleb128 0x6
+ 216 0098 6B000000 		.4byte	0x6b
+ 217 009c 02       		.uleb128 0x2
+ 218 009d 08       		.byte	0x8
+ 219 009e 04       		.byte	0x4
+ 220 009f ED020000 		.4byte	.LASF14
+ 221 00a3 02       		.uleb128 0x2
+ 222 00a4 04       		.byte	0x4
+ 223 00a5 07       		.byte	0x7
+ 224 00a6 86020000 		.4byte	.LASF15
+ 225 00aa 07       		.uleb128 0x7
+ 226 00ab 89000000 		.4byte	.LASF16
+ 227 00af 01       		.byte	0x1
+ 228 00b0 2E       		.byte	0x2e
+ 229 00b1 00000000 		.4byte	.LFB0
+ 230 00b5 14000000 		.4byte	.LFE0-.LFB0
+ 231 00b9 01       		.uleb128 0x1
+ 232 00ba 9C       		.byte	0x9c
+ 233 00bb E4000000 		.4byte	0xe4
+ 234 00bf 08       		.uleb128 0x8
+ 235 00c0 06000000 		.4byte	.LVL0
+ 236 00c4 5C010000 		.4byte	0x15c
+ 237 00c8 08       		.uleb128 0x8
+ 238 00c9 0A000000 		.4byte	.LVL1
+ 239 00cd 67010000 		.4byte	0x167
+ 240 00d1 08       		.uleb128 0x8
+ 241 00d2 0E000000 		.4byte	.LVL2
+ 242 00d6 72010000 		.4byte	0x172
+ 243 00da 08       		.uleb128 0x8
+ 244 00db 12000000 		.4byte	.LVL3
+ 245 00df 7D010000 		.4byte	0x17d
+ 246 00e3 00       		.byte	0
+ 247 00e4 07       		.uleb128 0x7
+ 248 00e5 BC000000 		.4byte	.LASF17
+ 249 00e9 01       		.byte	0x1
+ 250 00ea 4F       		.byte	0x4f
+ 251 00eb 00000000 		.4byte	.LFB1
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 8
+
+
+ 252 00ef 28000000 		.4byte	.LFE1-.LFB1
+ 253 00f3 01       		.uleb128 0x1
+ 254 00f4 9C       		.byte	0x9c
+ 255 00f5 3A010000 		.4byte	0x13a
+ 256 00f9 08       		.uleb128 0x8
+ 257 00fa 06000000 		.4byte	.LVL4
+ 258 00fe 88010000 		.4byte	0x188
+ 259 0102 08       		.uleb128 0x8
+ 260 0103 0A000000 		.4byte	.LVL5
+ 261 0107 93010000 		.4byte	0x193
+ 262 010b 08       		.uleb128 0x8
+ 263 010c 0E000000 		.4byte	.LVL6
+ 264 0110 9E010000 		.4byte	0x19e
+ 265 0114 09       		.uleb128 0x9
+ 266 0115 14000000 		.4byte	.LVL7
+ 267 0119 A9010000 		.4byte	0x1a9
+ 268 011d 27010000 		.4byte	0x127
+ 269 0121 0A       		.uleb128 0xa
+ 270 0122 01       		.uleb128 0x1
+ 271 0123 50       		.byte	0x50
+ 272 0124 01       		.uleb128 0x1
+ 273 0125 3A       		.byte	0x3a
+ 274 0126 00       		.byte	0
+ 275 0127 08       		.uleb128 0x8
+ 276 0128 18000000 		.4byte	.LVL8
+ 277 012c B4010000 		.4byte	0x1b4
+ 278 0130 08       		.uleb128 0x8
+ 279 0131 1C000000 		.4byte	.LVL9
+ 280 0135 BF010000 		.4byte	0x1bf
+ 281 0139 00       		.byte	0
+ 282 013a 0B       		.uleb128 0xb
+ 283 013b 9F010000 		.4byte	.LASF18
+ 284 013f 01       		.byte	0x1
+ 285 0140 79       		.byte	0x79
+ 286 0141 00000000 		.4byte	.LFB2
+ 287 0145 02000000 		.4byte	.LFE2-.LFB2
+ 288 0149 01       		.uleb128 0x1
+ 289 014a 9C       		.byte	0x9c
+ 290 014b 0B       		.uleb128 0xb
+ 291 014c 05030000 		.4byte	.LASF19
+ 292 0150 01       		.byte	0x1
+ 293 0151 93       		.byte	0x93
+ 294 0152 00000000 		.4byte	.LFB3
+ 295 0156 02000000 		.4byte	.LFE3-.LFB3
+ 296 015a 01       		.uleb128 0x1
+ 297 015b 9C       		.byte	0x9c
+ 298 015c 0C       		.uleb128 0xc
+ 299 015d 1D000000 		.4byte	.LASF20
+ 300 0161 1D000000 		.4byte	.LASF20
+ 301 0165 03       		.byte	0x3
+ 302 0166 35       		.byte	0x35
+ 303 0167 0C       		.uleb128 0xc
+ 304 0168 71000000 		.4byte	.LASF21
+ 305 016c 71000000 		.4byte	.LASF21
+ 306 0170 03       		.byte	0x3
+ 307 0171 48       		.byte	0x48
+ 308 0172 0C       		.uleb128 0xc
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 9
+
+
+ 309 0173 E5010000 		.4byte	.LASF22
+ 310 0177 E5010000 		.4byte	.LASF22
+ 311 017b 04       		.byte	0x4
+ 312 017c 30       		.byte	0x30
+ 313 017d 0C       		.uleb128 0xc
+ 314 017e BF010000 		.4byte	.LASF23
+ 315 0182 BF010000 		.4byte	.LASF23
+ 316 0186 05       		.byte	0x5
+ 317 0187 28       		.byte	0x28
+ 318 0188 0C       		.uleb128 0xc
+ 319 0189 9D000000 		.4byte	.LASF24
+ 320 018d 9D000000 		.4byte	.LASF24
+ 321 0191 03       		.byte	0x3
+ 322 0192 49       		.byte	0x49
+ 323 0193 0C       		.uleb128 0xc
+ 324 0194 A2020000 		.4byte	.LASF25
+ 325 0198 A2020000 		.4byte	.LASF25
+ 326 019c 03       		.byte	0x3
+ 327 019d 44       		.byte	0x44
+ 328 019e 0C       		.uleb128 0xc
+ 329 019f 00000000 		.4byte	.LASF26
+ 330 01a3 00000000 		.4byte	.LASF26
+ 331 01a7 05       		.byte	0x5
+ 332 01a8 27       		.byte	0x27
+ 333 01a9 0C       		.uleb128 0xc
+ 334 01aa DB010000 		.4byte	.LASF27
+ 335 01ae DB010000 		.4byte	.LASF27
+ 336 01b2 06       		.byte	0x6
+ 337 01b3 78       		.byte	0x78
+ 338 01b4 0C       		.uleb128 0xc
+ 339 01b5 8A010000 		.4byte	.LASF28
+ 340 01b9 8A010000 		.4byte	.LASF28
+ 341 01bd 04       		.byte	0x4
+ 342 01be 2F       		.byte	0x2f
+ 343 01bf 0C       		.uleb128 0xc
+ 344 01c0 C5020000 		.4byte	.LASF29
+ 345 01c4 C5020000 		.4byte	.LASF29
+ 346 01c8 03       		.byte	0x3
+ 347 01c9 D1       		.byte	0xd1
+ 348 01ca 00       		.byte	0
+ 349              		.section	.debug_abbrev,"",%progbits
+ 350              	.Ldebug_abbrev0:
+ 351 0000 01       		.uleb128 0x1
+ 352 0001 11       		.uleb128 0x11
+ 353 0002 01       		.byte	0x1
+ 354 0003 25       		.uleb128 0x25
+ 355 0004 0E       		.uleb128 0xe
+ 356 0005 13       		.uleb128 0x13
+ 357 0006 0B       		.uleb128 0xb
+ 358 0007 03       		.uleb128 0x3
+ 359 0008 0E       		.uleb128 0xe
+ 360 0009 1B       		.uleb128 0x1b
+ 361 000a 0E       		.uleb128 0xe
+ 362 000b 55       		.uleb128 0x55
+ 363 000c 17       		.uleb128 0x17
+ 364 000d 11       		.uleb128 0x11
+ 365 000e 01       		.uleb128 0x1
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 10
+
+
+ 366 000f 10       		.uleb128 0x10
+ 367 0010 17       		.uleb128 0x17
+ 368 0011 00       		.byte	0
+ 369 0012 00       		.byte	0
+ 370 0013 02       		.uleb128 0x2
+ 371 0014 24       		.uleb128 0x24
+ 372 0015 00       		.byte	0
+ 373 0016 0B       		.uleb128 0xb
+ 374 0017 0B       		.uleb128 0xb
+ 375 0018 3E       		.uleb128 0x3e
+ 376 0019 0B       		.uleb128 0xb
+ 377 001a 03       		.uleb128 0x3
+ 378 001b 0E       		.uleb128 0xe
+ 379 001c 00       		.byte	0
+ 380 001d 00       		.byte	0
+ 381 001e 03       		.uleb128 0x3
+ 382 001f 24       		.uleb128 0x24
+ 383 0020 00       		.byte	0
+ 384 0021 0B       		.uleb128 0xb
+ 385 0022 0B       		.uleb128 0xb
+ 386 0023 3E       		.uleb128 0x3e
+ 387 0024 0B       		.uleb128 0xb
+ 388 0025 03       		.uleb128 0x3
+ 389 0026 08       		.uleb128 0x8
+ 390 0027 00       		.byte	0
+ 391 0028 00       		.byte	0
+ 392 0029 04       		.uleb128 0x4
+ 393 002a 16       		.uleb128 0x16
+ 394 002b 00       		.byte	0
+ 395 002c 03       		.uleb128 0x3
+ 396 002d 0E       		.uleb128 0xe
+ 397 002e 3A       		.uleb128 0x3a
+ 398 002f 0B       		.uleb128 0xb
+ 399 0030 3B       		.uleb128 0x3b
+ 400 0031 0B       		.uleb128 0xb
+ 401 0032 49       		.uleb128 0x49
+ 402 0033 13       		.uleb128 0x13
+ 403 0034 00       		.byte	0
+ 404 0035 00       		.byte	0
+ 405 0036 05       		.uleb128 0x5
+ 406 0037 16       		.uleb128 0x16
+ 407 0038 00       		.byte	0
+ 408 0039 03       		.uleb128 0x3
+ 409 003a 0E       		.uleb128 0xe
+ 410 003b 3A       		.uleb128 0x3a
+ 411 003c 0B       		.uleb128 0xb
+ 412 003d 3B       		.uleb128 0x3b
+ 413 003e 05       		.uleb128 0x5
+ 414 003f 49       		.uleb128 0x49
+ 415 0040 13       		.uleb128 0x13
+ 416 0041 00       		.byte	0
+ 417 0042 00       		.byte	0
+ 418 0043 06       		.uleb128 0x6
+ 419 0044 35       		.uleb128 0x35
+ 420 0045 00       		.byte	0
+ 421 0046 49       		.uleb128 0x49
+ 422 0047 13       		.uleb128 0x13
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 11
+
+
+ 423 0048 00       		.byte	0
+ 424 0049 00       		.byte	0
+ 425 004a 07       		.uleb128 0x7
+ 426 004b 2E       		.uleb128 0x2e
+ 427 004c 01       		.byte	0x1
+ 428 004d 3F       		.uleb128 0x3f
+ 429 004e 19       		.uleb128 0x19
+ 430 004f 03       		.uleb128 0x3
+ 431 0050 0E       		.uleb128 0xe
+ 432 0051 3A       		.uleb128 0x3a
+ 433 0052 0B       		.uleb128 0xb
+ 434 0053 3B       		.uleb128 0x3b
+ 435 0054 0B       		.uleb128 0xb
+ 436 0055 27       		.uleb128 0x27
+ 437 0056 19       		.uleb128 0x19
+ 438 0057 11       		.uleb128 0x11
+ 439 0058 01       		.uleb128 0x1
+ 440 0059 12       		.uleb128 0x12
+ 441 005a 06       		.uleb128 0x6
+ 442 005b 40       		.uleb128 0x40
+ 443 005c 18       		.uleb128 0x18
+ 444 005d 9742     		.uleb128 0x2117
+ 445 005f 19       		.uleb128 0x19
+ 446 0060 01       		.uleb128 0x1
+ 447 0061 13       		.uleb128 0x13
+ 448 0062 00       		.byte	0
+ 449 0063 00       		.byte	0
+ 450 0064 08       		.uleb128 0x8
+ 451 0065 898201   		.uleb128 0x4109
+ 452 0068 00       		.byte	0
+ 453 0069 11       		.uleb128 0x11
+ 454 006a 01       		.uleb128 0x1
+ 455 006b 31       		.uleb128 0x31
+ 456 006c 13       		.uleb128 0x13
+ 457 006d 00       		.byte	0
+ 458 006e 00       		.byte	0
+ 459 006f 09       		.uleb128 0x9
+ 460 0070 898201   		.uleb128 0x4109
+ 461 0073 01       		.byte	0x1
+ 462 0074 11       		.uleb128 0x11
+ 463 0075 01       		.uleb128 0x1
+ 464 0076 31       		.uleb128 0x31
+ 465 0077 13       		.uleb128 0x13
+ 466 0078 01       		.uleb128 0x1
+ 467 0079 13       		.uleb128 0x13
+ 468 007a 00       		.byte	0
+ 469 007b 00       		.byte	0
+ 470 007c 0A       		.uleb128 0xa
+ 471 007d 8A8201   		.uleb128 0x410a
+ 472 0080 00       		.byte	0
+ 473 0081 02       		.uleb128 0x2
+ 474 0082 18       		.uleb128 0x18
+ 475 0083 9142     		.uleb128 0x2111
+ 476 0085 18       		.uleb128 0x18
+ 477 0086 00       		.byte	0
+ 478 0087 00       		.byte	0
+ 479 0088 0B       		.uleb128 0xb
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 12
+
+
+ 480 0089 2E       		.uleb128 0x2e
+ 481 008a 00       		.byte	0
+ 482 008b 3F       		.uleb128 0x3f
+ 483 008c 19       		.uleb128 0x19
+ 484 008d 03       		.uleb128 0x3
+ 485 008e 0E       		.uleb128 0xe
+ 486 008f 3A       		.uleb128 0x3a
+ 487 0090 0B       		.uleb128 0xb
+ 488 0091 3B       		.uleb128 0x3b
+ 489 0092 0B       		.uleb128 0xb
+ 490 0093 27       		.uleb128 0x27
+ 491 0094 19       		.uleb128 0x19
+ 492 0095 11       		.uleb128 0x11
+ 493 0096 01       		.uleb128 0x1
+ 494 0097 12       		.uleb128 0x12
+ 495 0098 06       		.uleb128 0x6
+ 496 0099 40       		.uleb128 0x40
+ 497 009a 18       		.uleb128 0x18
+ 498 009b 9742     		.uleb128 0x2117
+ 499 009d 19       		.uleb128 0x19
+ 500 009e 00       		.byte	0
+ 501 009f 00       		.byte	0
+ 502 00a0 0C       		.uleb128 0xc
+ 503 00a1 2E       		.uleb128 0x2e
+ 504 00a2 00       		.byte	0
+ 505 00a3 3F       		.uleb128 0x3f
+ 506 00a4 19       		.uleb128 0x19
+ 507 00a5 3C       		.uleb128 0x3c
+ 508 00a6 19       		.uleb128 0x19
+ 509 00a7 6E       		.uleb128 0x6e
+ 510 00a8 0E       		.uleb128 0xe
+ 511 00a9 03       		.uleb128 0x3
+ 512 00aa 0E       		.uleb128 0xe
+ 513 00ab 3A       		.uleb128 0x3a
+ 514 00ac 0B       		.uleb128 0xb
+ 515 00ad 3B       		.uleb128 0x3b
+ 516 00ae 0B       		.uleb128 0xb
+ 517 00af 00       		.byte	0
+ 518 00b0 00       		.byte	0
+ 519 00b1 00       		.byte	0
+ 520              		.section	.debug_aranges,"",%progbits
+ 521 0000 34000000 		.4byte	0x34
+ 522 0004 0200     		.2byte	0x2
+ 523 0006 00000000 		.4byte	.Ldebug_info0
+ 524 000a 04       		.byte	0x4
+ 525 000b 00       		.byte	0
+ 526 000c 0000     		.2byte	0
+ 527 000e 0000     		.2byte	0
+ 528 0010 00000000 		.4byte	.LFB0
+ 529 0014 14000000 		.4byte	.LFE0-.LFB0
+ 530 0018 00000000 		.4byte	.LFB1
+ 531 001c 28000000 		.4byte	.LFE1-.LFB1
+ 532 0020 00000000 		.4byte	.LFB2
+ 533 0024 02000000 		.4byte	.LFE2-.LFB2
+ 534 0028 00000000 		.4byte	.LFB3
+ 535 002c 02000000 		.4byte	.LFE3-.LFB3
+ 536 0030 00000000 		.4byte	0
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 13
+
+
+ 537 0034 00000000 		.4byte	0
+ 538              		.section	.debug_ranges,"",%progbits
+ 539              	.Ldebug_ranges0:
+ 540 0000 00000000 		.4byte	.LFB0
+ 541 0004 14000000 		.4byte	.LFE0
+ 542 0008 00000000 		.4byte	.LFB1
+ 543 000c 28000000 		.4byte	.LFE1
+ 544 0010 00000000 		.4byte	.LFB2
+ 545 0014 02000000 		.4byte	.LFE2
+ 546 0018 00000000 		.4byte	.LFB3
+ 547 001c 02000000 		.4byte	.LFE3
+ 548 0020 00000000 		.4byte	0
+ 549 0024 00000000 		.4byte	0
+ 550              		.section	.debug_line,"",%progbits
+ 551              	.Ldebug_line0:
+ 552 0000 EE000000 		.section	.debug_str,"MS",%progbits,1
+ 552      02009E00 
+ 552      00000201 
+ 552      FB0E0D00 
+ 552      01010101 
+ 553              	.LASF26:
+ 554 0000 4144435F 		.ascii	"ADC_SAR_Seq_1_IntClock_Start\000"
+ 554      5341525F 
+ 554      5365715F 
+ 554      315F496E 
+ 554      74436C6F 
+ 555              	.LASF20:
+ 556 001d 4144435F 		.ascii	"ADC_SAR_Seq_1_SAR_Stop\000"
+ 556      5341525F 
+ 556      5365715F 
+ 556      315F5341 
+ 556      525F5374 
+ 557              	.LASF31:
+ 558 0034 47656E65 		.ascii	"Generated_Source\\PSoC5\\ADC_SAR_Seq_1_PM.c\000"
+ 558      72617465 
+ 558      645F536F 
+ 558      75726365 
+ 558      5C50536F 
+ 559              	.LASF3:
+ 560 005e 73686F72 		.ascii	"short unsigned int\000"
+ 560      7420756E 
+ 560      7369676E 
+ 560      65642069 
+ 560      6E7400
+ 561              	.LASF21:
+ 562 0071 4144435F 		.ascii	"ADC_SAR_Seq_1_SAR_Sleep\000"
+ 562      5341525F 
+ 562      5365715F 
+ 562      315F5341 
+ 562      525F536C 
+ 563              	.LASF16:
+ 564 0089 4144435F 		.ascii	"ADC_SAR_Seq_1_Sleep\000"
+ 564      5341525F 
+ 564      5365715F 
+ 564      315F536C 
+ 564      65657000 
+ 565              	.LASF24:
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 14
+
+
+ 566 009d 4144435F 		.ascii	"ADC_SAR_Seq_1_SAR_Wakeup\000"
+ 566      5341525F 
+ 566      5365715F 
+ 566      315F5341 
+ 566      525F5761 
+ 567              	.LASF9:
+ 568 00b6 666C6F61 		.ascii	"float\000"
+ 568      7400
+ 569              	.LASF17:
+ 570 00bc 4144435F 		.ascii	"ADC_SAR_Seq_1_Wakeup\000"
+ 570      5341525F 
+ 570      5365715F 
+ 570      315F5761 
+ 570      6B657570 
+ 571              	.LASF1:
+ 572 00d1 756E7369 		.ascii	"unsigned char\000"
+ 572      676E6564 
+ 572      20636861 
+ 572      7200
+ 573              	.LASF30:
+ 574 00df 474E5520 		.ascii	"GNU C11 5.4.1 20160609 (release) [ARM/embedded-5-br"
+ 574      43313120 
+ 574      352E342E 
+ 574      31203230 
+ 574      31363036 
+ 575 0112 616E6368 		.ascii	"anch revision 237715] -mcpu=cortex-m3 -mthumb -g -O"
+ 575      20726576 
+ 575      6973696F 
+ 575      6E203233 
+ 575      37373135 
+ 576 0145 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 576      66756E63 
+ 576      74696F6E 
+ 576      2D736563 
+ 576      74696F6E 
+ 577              	.LASF13:
+ 578 016d 72656738 		.ascii	"reg8\000"
+ 578      00
+ 579              	.LASF5:
+ 580 0172 6C6F6E67 		.ascii	"long unsigned int\000"
+ 580      20756E73 
+ 580      69676E65 
+ 580      6420696E 
+ 580      7400
+ 581              	.LASF12:
+ 582 0184 75696E74 		.ascii	"uint8\000"
+ 582      3800
+ 583              	.LASF28:
+ 584 018a 4144435F 		.ascii	"ADC_SAR_Seq_1_Enable\000"
+ 584      5341525F 
+ 584      5365715F 
+ 584      315F456E 
+ 584      61626C65 
+ 585              	.LASF18:
+ 586 019f 4144435F 		.ascii	"ADC_SAR_Seq_1_SaveConfig\000"
+ 586      5341525F 
+ 586      5365715F 
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 15
+
+
+ 586      315F5361 
+ 586      7665436F 
+ 587              	.LASF10:
+ 588 01b8 646F7562 		.ascii	"double\000"
+ 588      6C6500
+ 589              	.LASF23:
+ 590 01bf 4144435F 		.ascii	"ADC_SAR_Seq_1_IntClock_Stop\000"
+ 590      5341525F 
+ 590      5365715F 
+ 590      315F496E 
+ 590      74436C6F 
+ 591              	.LASF27:
+ 592 01db 43794465 		.ascii	"CyDelayUs\000"
+ 592      6C617955 
+ 592      7300
+ 593              	.LASF22:
+ 594 01e5 4144435F 		.ascii	"ADC_SAR_Seq_1_Disable\000"
+ 594      5341525F 
+ 594      5365715F 
+ 594      315F4469 
+ 594      7361626C 
+ 595              	.LASF8:
+ 596 01fb 756E7369 		.ascii	"unsigned int\000"
+ 596      676E6564 
+ 596      20696E74 
+ 596      00
+ 597              	.LASF32:
+ 598 0208 433A5C55 		.ascii	"C:\\Users\\shiyu\\Documents\\GitHub\\MUR\\MCU_PSOC\\"
+ 598      73657273 
+ 598      5C736869 
+ 598      79755C44 
+ 598      6F63756D 
+ 599 0235 4272616E 		.ascii	"Branches\\Try_MUX_read_directly_can_test\\SAR Examp"
+ 599      63686573 
+ 599      5C547279 
+ 599      5F4D5558 
+ 599      5F726561 
+ 600 0266 6C652E63 		.ascii	"le.cydsn\000"
+ 600      7964736E 
+ 600      00
+ 601              	.LASF7:
+ 602 026f 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 602      206C6F6E 
+ 602      6720756E 
+ 602      7369676E 
+ 602      65642069 
+ 603              	.LASF15:
+ 604 0286 73697A65 		.ascii	"sizetype\000"
+ 604      74797065 
+ 604      00
+ 605              	.LASF6:
+ 606 028f 6C6F6E67 		.ascii	"long long int\000"
+ 606      206C6F6E 
+ 606      6720696E 
+ 606      7400
+ 607              	.LASF11:
+ 608 029d 63686172 		.ascii	"char\000"
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\cceqyARo.s 			page 16
+
+
+ 608      00
+ 609              	.LASF25:
+ 610 02a2 4144435F 		.ascii	"ADC_SAR_Seq_1_SAR_Enable\000"
+ 610      5341525F 
+ 610      5365715F 
+ 610      315F5341 
+ 610      525F456E 
+ 611              	.LASF2:
+ 612 02bb 73686F72 		.ascii	"short int\000"
+ 612      7420696E 
+ 612      7400
+ 613              	.LASF29:
+ 614 02c5 4144435F 		.ascii	"ADC_SAR_Seq_1_SAR_StartConvert\000"
+ 614      5341525F 
+ 614      5365715F 
+ 614      315F5341 
+ 614      525F5374 
+ 615              	.LASF4:
+ 616 02e4 6C6F6E67 		.ascii	"long int\000"
+ 616      20696E74 
+ 616      00
+ 617              	.LASF14:
+ 618 02ed 6C6F6E67 		.ascii	"long double\000"
+ 618      20646F75 
+ 618      626C6500 
+ 619              	.LASF0:
+ 620 02f9 7369676E 		.ascii	"signed char\000"
+ 620      65642063 
+ 620      68617200 
+ 621              	.LASF19:
+ 622 0305 4144435F 		.ascii	"ADC_SAR_Seq_1_RestoreConfig\000"
+ 622      5341525F 
+ 622      5365715F 
+ 622      315F5265 
+ 622      73746F72 
+ 623              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160609 (release) [ARM/embedded-5-bran

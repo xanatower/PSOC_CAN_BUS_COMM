@@ -1,0 +1,3313 @@
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"main.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.ISR_CAN,"ax",%progbits
+  20              		.align	2
+  21              		.global	ISR_CAN
+  22              		.thumb
+  23              		.thumb_func
+  24              		.type	ISR_CAN, %function
+  25              	ISR_CAN:
+  26              	.LFB67:
+  27              		.file 1 "main.c"
+   1:main.c        **** /* ========================================
+   2:main.c        ****  *
+   3:main.c        ****  * Copyright YOUR COMPANY, THE YEAR
+   4:main.c        ****  * All Rights Reserved
+   5:main.c        ****  * UNPUBLISHED, LICENSED SOFTWARE.
+   6:main.c        ****  *
+   7:main.c        ****  * CONFIDENTIAL AND PROPRIETARY INFORMATION
+   8:main.c        ****  * WHICH IS THE PROPERTY OF your company.
+   9:main.c        ****  *
+  10:main.c        ****  * ========================================
+  11:main.c        **** */
+  12:main.c        **** #include <project.h>
+  13:main.c        **** #include <stdio.h>
+  14:main.c        **** #include <math.h>
+  15:main.c        **** 
+  16:main.c        **** #define MODE_NORMAL 0
+  17:main.c        **** #define MODE_CH 1
+  18:main.c        **** 
+  19:main.c        **** #define DUMMY 1.0
+  20:main.c        **** 
+  21:main.c        **** #define HIGH 1u
+  22:main.c        **** #define LOW 0u
+  23:main.c        **** 
+  24:main.c        **** /* Switch debounce delay in milliseconds */
+  25:main.c        **** #define SWITCH_DEBOUNCE_UNIT (1u)
+  26:main.c        **** 
+  27:main.c        **** /* Number of debounce units to count delay, before consider that switch is pressed */
+  28:main.c        **** #define SWITCH_DEBOUNCE_PERIOD (10u)
+  29:main.c        **** 
+  30:main.c        **** #define DATA_SIZE (6u)
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 2
+
+
+  31:main.c        **** 
+  32:main.c        **** /* Switch state defines */
+  33:main.c        **** #define SWITCH_PRESSED (0u)
+  34:main.c        **** #define SWITCH_RELEASED (1u)
+  35:main.c        **** 
+  36:main.c        **** /* Function prototypes */
+  37:main.c        **** 
+  38:main.c        **** CY_ISR_PROTO(ISR_CAN);
+  39:main.c        **** 
+  40:main.c        **** /* Global variable used to store switch state */
+  41:main.c        **** uint8 switchState = SWITCH_RELEASED;
+  42:main.c        **** //String used to output value to UART
+  43:main.c        **** char outputstring[50];
+  44:main.c        **** 
+  45:main.c        **** float max_temp = 0;
+  46:main.c        **** float min_temp = 15;
+  47:main.c        **** float avg_temp = 0;
+  48:main.c        **** 
+  49:main.c        **** float Temperature;
+  50:main.c        **** 
+  51:main.c        **** /* Global variable used to store ISR flag */
+  52:main.c        **** volatile uint8 isrFlag = 0u;
+  53:main.c        **** 
+  54:main.c        **** /*******************************************************************************
+  55:main.c        **** * Function Name: main
+  56:main.c        **** ********************************************************************************
+  57:main.c        **** 
+  58:main.c        **** *
+  59:main.c        **** *******************************************************************************/
+  60:main.c        **** 
+  61:main.c        **** void UART_STRING(char my_string[], char outputstring[], int ch, float voltage, int mode)
+  62:main.c        **** {
+  63:main.c        ****     if (mode == MODE_NORMAL)
+  64:main.c        ****     {
+  65:main.c        ****         sprintf(outputstring, my_string);
+  66:main.c        ****         UART_1_PutString(outputstring); // print value to UART
+  67:main.c        ****         UART_1_PutString("\r\n");
+  68:main.c        ****     }
+  69:main.c        ****     if (mode == MODE_CH)
+  70:main.c        ****     {
+  71:main.c        ****         sprintf(outputstring, "Channel %d is %6.3f C/Degree", ch, voltage);
+  72:main.c        ****         UART_1_PutString(outputstring); // print value to UART
+  73:main.c        ****         UART_1_PutString("\r\n");
+  74:main.c        ****     }
+  75:main.c        **** }
+  76:main.c        **** 
+  77:main.c        **** CY_ISR(Timer_Int_Handler)
+  78:main.c        **** {
+  79:main.c        ****     // LED_Write(1u);
+  80:main.c        ****     //The CAN message needed to be sent every 100ms, so add an timer interupt to execute this
+  81:main.c        ****     //Func
+  82:main.c        ****     int num_ther = 2u;
+  83:main.c        ****     int hi_ind = 02u;
+  84:main.c        ****     int low_ind = 01u;
+  85:main.c        ****     //Byte 1: Thermistor Module Number
+  86:main.c        ****     CAN_TX_DATA_BYTE1(CAN_TX_MAILBOX_ADCdata) = 0u; //8 bit 0 in binary
+  87:main.c        ****     //Byte 2:
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 3
+
+
+  88:main.c        ****     CAN_TX_DATA_BYTE2(CAN_TX_MAILBOX_ADCdata) = (int)min_temp; //int8_t type is the signed 8 bit in
+  89:main.c        ****     //I am casting my flost value to an 8 bit signed integer
+  90:main.c        ****     //Byte 3:
+  91:main.c        ****     CAN_TX_DATA_BYTE3(CAN_TX_MAILBOX_ADCdata) = (int)max_temp;
+  92:main.c        ****     //Byte 4:
+  93:main.c        ****     CAN_TX_DATA_BYTE4(CAN_TX_MAILBOX_ADCdata) = (int)avg_temp;
+  94:main.c        ****     //Byte 5: Number of thermistors enabled： we have 34 here
+  95:main.c        ****     CAN_TX_DATA_BYTE5(CAN_TX_MAILBOX_ADCdata) = num_ther;
+  96:main.c        ****     //Byte 6: Highest thermistor ID on the module: 33
+  97:main.c        ****     CAN_TX_DATA_BYTE6(CAN_TX_MAILBOX_ADCdata) = low_ind;
+  98:main.c        ****     //Byte 7: Lowest thermistor ID on the module: 0
+  99:main.c        ****     CAN_TX_DATA_BYTE7(CAN_TX_MAILBOX_ADCdata) = hi_ind;
+ 100:main.c        ****     //the last bit sums all bit + Checksum 8-bit (sum of all bytes +ID + length)
+ 101:main.c        ****     // new algo
+ 102:main.c        ****     char lastbyte = (0x39 + 8 + 0 + (int8_t)min_temp + (int8_t)max_temp + (int8_t)avg_temp + num_th
+ 103:main.c        ****     //char lastbyte = ((0x1839f380 & 0xFF) + 8 + 0 + (int8_t)min_temp + (int8_t)max_temp + (int8_t)
+ 104:main.c        ****     //Byte 8: Checksum
+ 105:main.c        ****     //0x39 + 8 + 0xF + 0x1E + 0x19 + 0x2 + 0x1 + 0x2 = 0x8C (0x8C being the Checksum value)
+ 106:main.c        ****     CAN_TX_DATA_BYTE8(CAN_TX_MAILBOX_ADCdata) = lastbyte;
+ 107:main.c        **** 
+ 108:main.c        ****     //Send CAN message
+ 109:main.c        ****     CAN_SendMsgADCdata();
+ 110:main.c        **** 
+ 111:main.c        ****     //sprintf(outputstring, "B1: %x, B2: %x, B3: %x, B4: %x, B5: %x, B6: %x, B7: %x, Checksum: %x",
+ 112:main.c        ****     //lastbyte);
+ 113:main.c        ****     UART_1_PutString(outputstring); // print value to UART
+ 114:main.c        ****     UART_1_PutString("\r\n");
+ 115:main.c        **** 
+ 116:main.c        ****     //LED_Write(0u);,
+ 117:main.c        **** }
+ 118:main.c        **** 
+ 119:main.c        **** int main()
+ 120:main.c        **** {
+ 121:main.c        ****     //int16 output;
+ 122:main.c        ****     //char8 txData[DATA_SIZE];
+ 123:main.c        **** 
+ 124:main.c        ****     CyGlobalIntEnable; /* Enable global interrupts. */
+ 125:main.c        **** 
+ 126:main.c        ****     /* Start services */
+ 127:main.c        ****     ADC_SAR_1_Start();
+ 128:main.c        ****     UART_1_Start();
+ 129:main.c        ****     CAN_Start();
+ 130:main.c        ****     AMux_Init();
+ 131:main.c        ****     AMux_Start();
+ 132:main.c        ****     //Interrupt
+ 133:main.c        ****     Timer_Start();
+ 134:main.c        ****     Timer_Int_StartEx(Timer_Int_Handler);
+ 135:main.c        **** 
+ 136:main.c        ****     /* Set CAN interrupt handler to local routine */
+ 137:main.c        ****     CyIntSetVector(CAN_ISR_NUMBER, ISR_CAN);
+ 138:main.c        **** 
+ 139:main.c        ****     /*Declear Main function local variables*/
+ 140:main.c        **** 
+ 141:main.c        ****     float voltage = 0; //voltage reading
+ 142:main.c        ****                        //    uint16 counts = 0;     // ADC Counts
+ 143:main.c        ****     uint16 ch;         // Channels of Amux
+ 144:main.c        ****     uint16 resVolts;
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 4
+
+
+ 145:main.c        ****     int refresh_count = 0;
+ 146:main.c        ****     
+ 147:main.c        ****     
+ 148:main.c        ****     UART_STRING("Starting now", outputstring, (int)DUMMY, DUMMY, MODE_NORMAL);
+ 149:main.c        ****     for (;;)
+ 150:main.c        ****     {
+ 151:main.c        **** 
+ 152:main.c        ****         if (refresh_count==5){
+ 153:main.c        ****             sprintf(outputstring, "Refreshed, count = %d",refresh_count );
+ 154:main.c        ****             UART_1_PutString(outputstring); // print value to UART
+ 155:main.c        ****             UART_1_PutString("\r\n");
+ 156:main.c        ****             
+ 157:main.c        ****             refresh_count = 0;
+ 158:main.c        ****             max_temp = Temperature;
+ 159:main.c        ****             min_temp = Temperature;
+ 160:main.c        **** 
+ 161:main.c        ****         }
+ 162:main.c        **** 
+ 163:main.c        ****         for (ch = 0; ch < 67; ch++)
+ 164:main.c        ****         {
+ 165:main.c        **** 
+ 166:main.c        ****             AMux_Select(ch);
+ 167:main.c        ****             ADC_SAR_1_StartConvert();
+ 168:main.c        ****             //ADC_SAR_1_RETURN_STATUS is a system macro
+ 169:main.c        ****             while (!ADC_SAR_1_IsEndConversion(ADC_SAR_1_RETURN_STATUS))
+ 170:main.c        ****             {
+ 171:main.c        ****             }
+ 172:main.c        **** 
+ 173:main.c        ****             //do the conversion here
+ 174:main.c        ****             //take average of 5 readings
+ 175:main.c        ****             uint16 sum = 0;
+ 176:main.c        ****             for (int i = 0; i < 5; i++)
+ 177:main.c        ****             {
+ 178:main.c        ****                 sum = sum + ADC_SAR_1_GetResult16();
+ 179:main.c        ****             }
+ 180:main.c        ****             uint16 average = sum / 5;
+ 181:main.c        **** 
+ 182:main.c        ****             voltage = ADC_SAR_1_CountsTo_Volts(average);
+ 183:main.c        ****             resVolts = (uint16)voltage;
+ 184:main.c        **** 
+ 185:main.c        ****             //convert to tenmperature
+ 186:main.c        ****             //removed ch21-defected, ch53-empty
+ 187:main.c        ****             if ((ch % 2 != 0 || ch == 0))
+ 188:main.c        ****             { 
+ 189:main.c        ****                 if (ch!=21 && ch!=53){
+ 190:main.c        ****                 // only update on even number of channels
+ 191:main.c        ****                 Temperature = (-740.85) * powf(voltage, 5.0) + (7056.8) * powf(voltage, 4.0) + (-26
+ 192:main.c        **** //              BattTemp = -740.85 * bt5 + 7056.8 * bt4 - 26800 * bt3 + 50732 * bt2 - 47967 * bt1 +
+ 193:main.c        ****                 //uint16 u16Temperature = (uint16) Temperature;
+ 194:main.c        ****                 if ((Temperature > max_temp) && (Temperature<120))
+ 195:main.c        ****                 {
+ 196:main.c        ****                     max_temp = Temperature;
+ 197:main.c        ****                 }
+ 198:main.c        ****                 if ((Temperature < min_temp) && (Temperature>-40))
+ 199:main.c        ****                 {
+ 200:main.c        ****                     min_temp = Temperature;
+ 201:main.c        ****                 }
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 5
+
+
+ 202:main.c        **** 
+ 203:main.c        ****                 avg_temp = (max_temp + min_temp) / 2.0;
+ 204:main.c        ****                 UART_STRING("Channel %d is %6.3f C Degree", outputstring, (int)ch, Temperature, MOD
+ 205:main.c        ****                 sprintf(outputstring, "max temp is %6.3f C/Degree", max_temp);
+ 206:main.c        ****                 UART_1_PutString(outputstring); // print value to UART
+ 207:main.c        ****                 UART_1_PutString("\r\n");
+ 208:main.c        ****                 sprintf(outputstring, "min temp is %6.3f C/Degree", min_temp);
+ 209:main.c        ****                 UART_1_PutString(outputstring); // print value to UART
+ 210:main.c        ****                 UART_1_PutString("\r\n");
+ 211:main.c        ****                 }
+ 212:main.c        ****             }
+ 213:main.c        **** 
+ 214:main.c        ****             CyDelay(100);
+ 215:main.c        ****             ADC_SAR_1_StopConvert();
+ 216:main.c        ****             //finished one channel
+ 217:main.c        ****         }
+ 218:main.c        ****         //finished all channels
+ 219:main.c        ****         refresh_count++;
+ 220:main.c        ****         UART_STRING("one interation", outputstring, (int)DUMMY, DUMMY, MODE_NORMAL);
+ 221:main.c        ****         //CyDelay(1000);
+ 222:main.c        ****     }
+ 223:main.c        **** }
+ 224:main.c        **** 
+ 225:main.c        **** /*******************************************************************************
+ 226:main.c        **** * Function Name: ISR_CAN
+ 227:main.c        **** ********************************************************************************
+ 228:main.c        **** *
+ 229:main.c        **** * Summary:
+ 230:main.c        **** *  This ISR is executed at a Receive Message event and set the isrFlag.
+ 231:main.c        **** *
+ 232:main.c        **** * Parameters:
+ 233:main.c        **** *  None.
+ 234:main.c        **** *
+ 235:main.c        **** * Return:
+ 236:main.c        **** *  None.
+ 237:main.c        **** *
+ 238:main.c        **** *******************************************************************************/
+ 239:main.c        **** CY_ISR(ISR_CAN)
+ 240:main.c        **** {
+  28              		.loc 1 240 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              		@ link register save eliminated.
+ 241:main.c        ****     /* Clear Receive Message flag */
+ 242:main.c        ****     CAN_INT_SR_REG.byte[1u] = CAN_RX_MESSAGE_MASK;
+  33              		.loc 1 242 0
+  34 0000 1022     		movs	r2, #16
+  35 0002 054B     		ldr	r3, .L2
+  36 0004 5A70     		strb	r2, [r3, #1]
+ 243:main.c        **** 
+ 244:main.c        ****     /* Set the isrFlag */
+ 245:main.c        ****     isrFlag = 1u;
+  37              		.loc 1 245 0
+  38 0006 0122     		movs	r2, #1
+  39 0008 044B     		ldr	r3, .L2+4
+  40 000a 1A70     		strb	r2, [r3]
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 6
+
+
+ 246:main.c        **** 
+ 247:main.c        ****     /* Acknowledges receipt of new message */
+ 248:main.c        ****     CAN_RX_ACK_MESSAGE(CAN_RX_MAILBOX_0);
+  41              		.loc 1 248 0
+  42 000c 044A     		ldr	r2, .L2+8
+  43 000e 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+  44 0010 43F00103 		orr	r3, r3, #1
+  45 0014 1370     		strb	r3, [r2]
+  46 0016 7047     		bx	lr
+  47              	.L3:
+  48              		.align	2
+  49              	.L2:
+  50 0018 00A00040 		.word	1073782784
+  51 001c 00000000 		.word	.LANCHOR0
+  52 0020 A0A00040 		.word	1073782944
+  53              		.cfi_endproc
+  54              	.LFE67:
+  55              		.size	ISR_CAN, .-ISR_CAN
+  56              		.global	__aeabi_f2iz
+  57              		.section	.text.Timer_Int_Handler,"ax",%progbits
+  58              		.align	2
+  59              		.global	Timer_Int_Handler
+  60              		.thumb
+  61              		.thumb_func
+  62              		.type	Timer_Int_Handler, %function
+  63              	Timer_Int_Handler:
+  64              	.LFB65:
+  78:main.c        ****     // LED_Write(1u);
+  65              		.loc 1 78 0
+  66              		.cfi_startproc
+  67              		@ args = 0, pretend = 0, frame = 0
+  68              		@ frame_needed = 0, uses_anonymous_args = 0
+  69 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+  70              		.cfi_def_cfa_offset 24
+  71              		.cfi_offset 4, -24
+  72              		.cfi_offset 5, -20
+  73              		.cfi_offset 6, -16
+  74              		.cfi_offset 7, -12
+  75              		.cfi_offset 8, -8
+  76              		.cfi_offset 14, -4
+  77              	.LVL0:
+  86:main.c        ****     //Byte 2:
+  78              		.loc 1 86 0
+  79 0004 1B4C     		ldr	r4, .L6
+  80 0006 0023     		movs	r3, #0
+  81 0008 E372     		strb	r3, [r4, #11]
+  88:main.c        ****     //I am casting my flost value to an 8 bit signed integer
+  82              		.loc 1 88 0
+  83 000a 1B4B     		ldr	r3, .L6+4
+  84 000c 1D68     		ldr	r5, [r3]	@ float
+  85 000e 2846     		mov	r0, r5
+  86 0010 FFF7FEFF 		bl	__aeabi_f2iz
+  87              	.LVL1:
+  88 0014 C0B2     		uxtb	r0, r0
+  89 0016 A072     		strb	r0, [r4, #10]
+  91:main.c        ****     //Byte 4:
+  90              		.loc 1 91 0
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 7
+
+
+  91 0018 184E     		ldr	r6, .L6+8
+  92 001a 7768     		ldr	r7, [r6, #4]	@ float
+  93 001c 3846     		mov	r0, r7
+  94 001e FFF7FEFF 		bl	__aeabi_f2iz
+  95              	.LVL2:
+  96 0022 C0B2     		uxtb	r0, r0
+  97 0024 6072     		strb	r0, [r4, #9]
+  93:main.c        ****     //Byte 5: Number of thermistors enabled： we have 34 here
+  98              		.loc 1 93 0
+  99 0026 B668     		ldr	r6, [r6, #8]	@ float
+ 100 0028 3046     		mov	r0, r6
+ 101 002a FFF7FEFF 		bl	__aeabi_f2iz
+ 102              	.LVL3:
+ 103 002e C0B2     		uxtb	r0, r0
+ 104 0030 2072     		strb	r0, [r4, #8]
+  95:main.c        ****     //Byte 6: Highest thermistor ID on the module: 33
+ 105              		.loc 1 95 0
+ 106 0032 0223     		movs	r3, #2
+ 107 0034 E373     		strb	r3, [r4, #15]
+  97:main.c        ****     //Byte 7: Lowest thermistor ID on the module: 0
+ 108              		.loc 1 97 0
+ 109 0036 0122     		movs	r2, #1
+ 110 0038 A273     		strb	r2, [r4, #14]
+  99:main.c        ****     //the last bit sums all bit + Checksum 8-bit (sum of all bytes +ID + length)
+ 111              		.loc 1 99 0
+ 112 003a 6373     		strb	r3, [r4, #13]
+ 102:main.c        ****     //char lastbyte = ((0x1839f380 & 0xFF) + 8 + 0 + (int8_t)min_temp + (int8_t)max_temp + (int8_t)
+ 113              		.loc 1 102 0
+ 114 003c 2846     		mov	r0, r5
+ 115 003e FFF7FEFF 		bl	__aeabi_f2iz
+ 116              	.LVL4:
+ 117 0042 4FFA80F8 		sxtb	r8, r0
+ 118 0046 3846     		mov	r0, r7
+ 119 0048 FFF7FEFF 		bl	__aeabi_f2iz
+ 120              	.LVL5:
+ 121 004c 45B2     		sxtb	r5, r0
+ 122 004e 3046     		mov	r0, r6
+ 123 0050 FFF7FEFF 		bl	__aeabi_f2iz
+ 124              	.LVL6:
+ 125 0054 40B2     		sxtb	r0, r0
+ 126 0056 4544     		add	r5, r5, r8
+ 127 0058 2844     		add	r0, r0, r5
+ 128 005a 4630     		adds	r0, r0, #70
+ 129 005c C0B2     		uxtb	r0, r0
+ 130              	.LVL7:
+ 106:main.c        **** 
+ 131              		.loc 1 106 0
+ 132 005e 2073     		strb	r0, [r4, #12]
+ 109:main.c        **** 
+ 133              		.loc 1 109 0
+ 134 0060 FFF7FEFF 		bl	CAN_SendMsgADCdata
+ 135              	.LVL8:
+ 113:main.c        ****     UART_1_PutString("\r\n");
+ 136              		.loc 1 113 0
+ 137 0064 0648     		ldr	r0, .L6+12
+ 138 0066 FFF7FEFF 		bl	UART_1_PutString
+ 139              	.LVL9:
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 8
+
+
+ 114:main.c        **** 
+ 140              		.loc 1 114 0
+ 141 006a 0648     		ldr	r0, .L6+16
+ 142 006c FFF7FEFF 		bl	UART_1_PutString
+ 143              	.LVL10:
+ 144 0070 BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 145              	.L7:
+ 146              		.align	2
+ 147              	.L6:
+ 148 0074 30A00040 		.word	1073782832
+ 149 0078 00000000 		.word	.LANCHOR1
+ 150 007c 00000000 		.word	.LANCHOR0
+ 151 0080 00000000 		.word	outputstring
+ 152 0084 00000000 		.word	.LC0
+ 153              		.cfi_endproc
+ 154              	.LFE65:
+ 155              		.size	Timer_Int_Handler, .-Timer_Int_Handler
+ 156              		.global	__aeabi_f2d
+ 157              		.section	.text.UART_STRING,"ax",%progbits
+ 158              		.align	2
+ 159              		.global	UART_STRING
+ 160              		.thumb
+ 161              		.thumb_func
+ 162              		.type	UART_STRING, %function
+ 163              	UART_STRING:
+ 164              	.LFB64:
+  62:main.c        ****     if (mode == MODE_NORMAL)
+ 165              		.loc 1 62 0
+ 166              		.cfi_startproc
+ 167              		@ args = 4, pretend = 0, frame = 0
+ 168              		@ frame_needed = 0, uses_anonymous_args = 0
+ 169              	.LVL11:
+ 170 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+ 171              		.cfi_def_cfa_offset 20
+ 172              		.cfi_offset 4, -20
+ 173              		.cfi_offset 5, -16
+ 174              		.cfi_offset 6, -12
+ 175              		.cfi_offset 7, -8
+ 176              		.cfi_offset 14, -4
+ 177 0002 83B0     		sub	sp, sp, #12
+ 178              		.cfi_def_cfa_offset 32
+ 179 0004 0D46     		mov	r5, r1
+ 180 0006 1646     		mov	r6, r2
+ 181 0008 1F46     		mov	r7, r3
+ 182 000a 089C     		ldr	r4, [sp, #32]
+  63:main.c        ****     {
+ 183              		.loc 1 63 0
+ 184 000c 4CB9     		cbnz	r4, .L9
+  65:main.c        ****         UART_1_PutString(outputstring); // print value to UART
+ 185              		.loc 1 65 0
+ 186 000e 0146     		mov	r1, r0
+ 187              	.LVL12:
+ 188 0010 2846     		mov	r0, r5
+ 189              	.LVL13:
+ 190 0012 FFF7FEFF 		bl	sprintf
+ 191              	.LVL14:
+  66:main.c        ****         UART_1_PutString("\r\n");
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 9
+
+
+ 192              		.loc 1 66 0
+ 193 0016 2846     		mov	r0, r5
+ 194 0018 FFF7FEFF 		bl	UART_1_PutString
+ 195              	.LVL15:
+  67:main.c        ****     }
+ 196              		.loc 1 67 0
+ 197 001c 0B48     		ldr	r0, .L12
+ 198 001e FFF7FEFF 		bl	UART_1_PutString
+ 199              	.LVL16:
+ 200              	.L9:
+  69:main.c        ****     {
+ 201              		.loc 1 69 0
+ 202 0022 012C     		cmp	r4, #1
+ 203 0024 0FD1     		bne	.L8
+  71:main.c        ****         UART_1_PutString(outputstring); // print value to UART
+ 204              		.loc 1 71 0
+ 205 0026 3846     		mov	r0, r7
+ 206 0028 FFF7FEFF 		bl	__aeabi_f2d
+ 207              	.LVL17:
+ 208 002c CDE90001 		strd	r0, [sp]
+ 209 0030 3246     		mov	r2, r6
+ 210 0032 0749     		ldr	r1, .L12+4
+ 211 0034 2846     		mov	r0, r5
+ 212 0036 FFF7FEFF 		bl	sprintf
+ 213              	.LVL18:
+  72:main.c        ****         UART_1_PutString("\r\n");
+ 214              		.loc 1 72 0
+ 215 003a 2846     		mov	r0, r5
+ 216 003c FFF7FEFF 		bl	UART_1_PutString
+ 217              	.LVL19:
+  73:main.c        ****     }
+ 218              		.loc 1 73 0
+ 219 0040 0248     		ldr	r0, .L12
+ 220 0042 FFF7FEFF 		bl	UART_1_PutString
+ 221              	.LVL20:
+ 222              	.L8:
+  75:main.c        **** 
+ 223              		.loc 1 75 0
+ 224 0046 03B0     		add	sp, sp, #12
+ 225              		.cfi_def_cfa_offset 20
+ 226              		@ sp needed
+ 227 0048 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 228              	.LVL21:
+ 229              	.L13:
+ 230 004a 00BF     		.align	2
+ 231              	.L12:
+ 232 004c 00000000 		.word	.LC0
+ 233 0050 04000000 		.word	.LC1
+ 234              		.cfi_endproc
+ 235              	.LFE64:
+ 236              		.size	UART_STRING, .-UART_STRING
+ 237              		.global	__aeabi_dmul
+ 238              		.global	__aeabi_dadd
+ 239              		.global	__aeabi_dsub
+ 240              		.global	__aeabi_d2f
+ 241              		.global	__aeabi_fcmpgt
+ 242              		.global	__aeabi_fcmplt
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 10
+
+
+ 243              		.global	__aeabi_fadd
+ 244              		.global	__aeabi_fmul
+ 245              		.section	.text.main,"ax",%progbits
+ 246              		.align	2
+ 247              		.global	main
+ 248              		.thumb
+ 249              		.thumb_func
+ 250              		.type	main, %function
+ 251              	main:
+ 252              	.LFB66:
+ 120:main.c        ****     //int16 output;
+ 253              		.loc 1 120 0
+ 254              		.cfi_startproc
+ 255              		@ args = 0, pretend = 0, frame = 0
+ 256              		@ frame_needed = 0, uses_anonymous_args = 0
+ 257 0000 2DE9F047 		push	{r4, r5, r6, r7, r8, r9, r10, lr}
+ 258              		.cfi_def_cfa_offset 32
+ 259              		.cfi_offset 4, -32
+ 260              		.cfi_offset 5, -28
+ 261              		.cfi_offset 6, -24
+ 262              		.cfi_offset 7, -20
+ 263              		.cfi_offset 8, -16
+ 264              		.cfi_offset 9, -12
+ 265              		.cfi_offset 10, -8
+ 266              		.cfi_offset 14, -4
+ 267 0004 82B0     		sub	sp, sp, #8
+ 268              		.cfi_def_cfa_offset 40
+ 124:main.c        **** 
+ 269              		.loc 1 124 0
+ 270              		.syntax unified
+ 271              	@ 124 "main.c" 1
+ 272 0006 62B6     		CPSIE   i
+ 273              	@ 0 "" 2
+ 127:main.c        ****     UART_1_Start();
+ 274              		.loc 1 127 0
+ 275              		.thumb
+ 276              		.syntax unified
+ 277 0008 FFF7FEFF 		bl	ADC_SAR_1_Start
+ 278              	.LVL22:
+ 128:main.c        ****     CAN_Start();
+ 279              		.loc 1 128 0
+ 280 000c FFF7FEFF 		bl	UART_1_Start
+ 281              	.LVL23:
+ 129:main.c        ****     AMux_Init();
+ 282              		.loc 1 129 0
+ 283 0010 FFF7FEFF 		bl	CAN_Start
+ 284              	.LVL24:
+ 130:main.c        ****     AMux_Start();
+ 285              		.loc 1 130 0
+ 286 0014 FFF7FEFF 		bl	AMux_Start
+ 287              	.LVL25:
+ 131:main.c        ****     //Interrupt
+ 288              		.loc 1 131 0
+ 289 0018 FFF7FEFF 		bl	AMux_Start
+ 290              	.LVL26:
+ 133:main.c        ****     Timer_Int_StartEx(Timer_Int_Handler);
+ 291              		.loc 1 133 0
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 11
+
+
+ 292 001c FFF7FEFF 		bl	Timer_Start
+ 293              	.LVL27:
+ 134:main.c        **** 
+ 294              		.loc 1 134 0
+ 295 0020 9748     		ldr	r0, .L35+48
+ 296 0022 FFF7FEFF 		bl	Timer_Int_StartEx
+ 297              	.LVL28:
+ 137:main.c        **** 
+ 298              		.loc 1 137 0
+ 299 0026 9749     		ldr	r1, .L35+52
+ 300 0028 1020     		movs	r0, #16
+ 301 002a FFF7FEFF 		bl	CyIntSetVector
+ 302              	.LVL29:
+ 148:main.c        ****     for (;;)
+ 303              		.loc 1 148 0
+ 304 002e 0027     		movs	r7, #0
+ 305 0030 0097     		str	r7, [sp]
+ 306 0032 4FF07E53 		mov	r3, #1065353216
+ 307 0036 0122     		movs	r2, #1
+ 308 0038 9349     		ldr	r1, .L35+56
+ 309 003a 9448     		ldr	r0, .L35+60
+ 310 003c FFF7FEFF 		bl	UART_STRING
+ 311              	.LVL30:
+ 145:main.c        ****     
+ 312              		.loc 1 145 0
+ 313 0040 BA46     		mov	r10, r7
+ 314              	.LVL31:
+ 315              	.L29:
+ 152:main.c        ****             sprintf(outputstring, "Refreshed, count = %d",refresh_count );
+ 316              		.loc 1 152 0
+ 317 0042 BAF1050F 		cmp	r10, #5
+ 318 0046 13D1     		bne	.L15
+ 153:main.c        ****             UART_1_PutString(outputstring); // print value to UART
+ 319              		.loc 1 153 0
+ 320 0048 8F4C     		ldr	r4, .L35+56
+ 321 004a 5246     		mov	r2, r10
+ 322 004c 9049     		ldr	r1, .L35+64
+ 323 004e 2046     		mov	r0, r4
+ 324 0050 FFF7FEFF 		bl	sprintf
+ 325              	.LVL32:
+ 154:main.c        ****             UART_1_PutString("\r\n");
+ 326              		.loc 1 154 0
+ 327 0054 2046     		mov	r0, r4
+ 328 0056 FFF7FEFF 		bl	UART_1_PutString
+ 329              	.LVL33:
+ 155:main.c        ****             
+ 330              		.loc 1 155 0
+ 331 005a 8E48     		ldr	r0, .L35+68
+ 332 005c FFF7FEFF 		bl	UART_1_PutString
+ 333              	.LVL34:
+ 158:main.c        ****             min_temp = Temperature;
+ 334              		.loc 1 158 0
+ 335 0060 8D4B     		ldr	r3, .L35+72
+ 336 0062 1B68     		ldr	r3, [r3]	@ float
+ 337 0064 8D4A     		ldr	r2, .L35+76
+ 338 0066 5360     		str	r3, [r2, #4]	@ float
+ 159:main.c        **** 
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 12
+
+
+ 339              		.loc 1 159 0
+ 340 0068 8D4A     		ldr	r2, .L35+80
+ 341 006a 1360     		str	r3, [r2]	@ float
+ 157:main.c        ****             max_temp = Temperature;
+ 342              		.loc 1 157 0
+ 343 006c 4FF0000A 		mov	r10, #0
+ 344              	.LVL35:
+ 345              	.L15:
+ 163:main.c        ****         {
+ 346              		.loc 1 163 0
+ 347 0070 0026     		movs	r6, #0
+ 348 0072 DEE0     		b	.L16
+ 349              	.LVL36:
+ 350              	.L28:
+ 351              	.LBB2:
+ 166:main.c        ****             ADC_SAR_1_StartConvert();
+ 352              		.loc 1 166 0
+ 353 0074 F0B2     		uxtb	r0, r6
+ 354 0076 FFF7FEFF 		bl	AMux_FastSelect
+ 355              	.LVL37:
+ 167:main.c        ****             //ADC_SAR_1_RETURN_STATUS is a system macro
+ 356              		.loc 1 167 0
+ 357 007a FFF7FEFF 		bl	ADC_SAR_1_StartConvert
+ 358              	.LVL38:
+ 359              	.L17:
+ 169:main.c        ****             {
+ 360              		.loc 1 169 0 discriminator 1
+ 361 007e 0120     		movs	r0, #1
+ 362 0080 FFF7FEFF 		bl	ADC_SAR_1_IsEndConversion
+ 363              	.LVL39:
+ 364 0084 0028     		cmp	r0, #0
+ 365 0086 FAD0     		beq	.L17
+ 366 0088 0025     		movs	r5, #0
+ 367 008a 2C46     		mov	r4, r5
+ 368 008c 04E0     		b	.L18
+ 369              	.LVL40:
+ 370              	.L19:
+ 371              	.LBB3:
+ 178:main.c        ****             }
+ 372              		.loc 1 178 0 discriminator 3
+ 373 008e FFF7FEFF 		bl	ADC_SAR_1_GetResult16
+ 374              	.LVL41:
+ 375 0092 2044     		add	r0, r0, r4
+ 376 0094 84B2     		uxth	r4, r0
+ 377              	.LVL42:
+ 176:main.c        ****             {
+ 378              		.loc 1 176 0 discriminator 3
+ 379 0096 0135     		adds	r5, r5, #1
+ 380              	.LVL43:
+ 381              	.L18:
+ 176:main.c        ****             {
+ 382              		.loc 1 176 0 is_stmt 0 discriminator 1
+ 383 0098 042D     		cmp	r5, #4
+ 384 009a F8DD     		ble	.L19
+ 385              	.LBE3:
+ 180:main.c        **** 
+ 386              		.loc 1 180 0 is_stmt 1
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 13
+
+
+ 387 009c 8148     		ldr	r0, .L35+84
+ 388 009e A0FB0430 		umull	r3, r0, r0, r4
+ 389              	.LVL44:
+ 182:main.c        ****             resVolts = (uint16)voltage;
+ 390              		.loc 1 182 0
+ 391 00a2 40F38F00 		sbfx	r0, r0, #2, #16
+ 392              	.LVL45:
+ 393 00a6 FFF7FEFF 		bl	ADC_SAR_1_CountsTo_Volts
+ 394              	.LVL46:
+ 395 00aa 0446     		mov	r4, r0
+ 396              	.LVL47:
+ 187:main.c        ****             { 
+ 397              		.loc 1 187 0
+ 398 00ac 16F0010F 		tst	r6, #1
+ 399 00b0 02D1     		bne	.L20
+ 187:main.c        ****             { 
+ 400              		.loc 1 187 0 is_stmt 0 discriminator 1
+ 401 00b2 002E     		cmp	r6, #0
+ 402 00b4 40F0B680 		bne	.L21
+ 403              	.L20:
+ 189:main.c        ****                 // only update on even number of channels
+ 404              		.loc 1 189 0 is_stmt 1
+ 405 00b8 152E     		cmp	r6, #21
+ 406 00ba 00F0B380 		beq	.L21
+ 189:main.c        ****                 // only update on even number of channels
+ 407              		.loc 1 189 0 is_stmt 0 discriminator 1
+ 408 00be 352E     		cmp	r6, #53
+ 409 00c0 00F0B080 		beq	.L21
+ 191:main.c        **** //              BattTemp = -740.85 * bt5 + 7056.8 * bt4 - 26800 * bt3 + 50732 * bt2 - 47967 * bt1 +
+ 410              		.loc 1 191 0 is_stmt 1
+ 411 00c4 7849     		ldr	r1, .L35+88
+ 412 00c6 2046     		mov	r0, r4
+ 413              	.LVL48:
+ 414 00c8 FFF7FEFF 		bl	powf
+ 415              	.LVL49:
+ 416 00cc FFF7FEFF 		bl	__aeabi_f2d
+ 417              	.LVL50:
+ 418 00d0 5FA3     		adr	r3, .L35
+ 419 00d2 D3E90023 		ldrd	r2, [r3]
+ 420 00d6 FFF7FEFF 		bl	__aeabi_dmul
+ 421              	.LVL51:
+ 422 00da 8046     		mov	r8, r0
+ 423 00dc 8946     		mov	r9, r1
+ 424 00de 4FF08141 		mov	r1, #1082130432
+ 425 00e2 2046     		mov	r0, r4
+ 426 00e4 FFF7FEFF 		bl	powf
+ 427              	.LVL52:
+ 428 00e8 FFF7FEFF 		bl	__aeabi_f2d
+ 429              	.LVL53:
+ 430 00ec 5AA3     		adr	r3, .L35+8
+ 431 00ee D3E90023 		ldrd	r2, [r3]
+ 432 00f2 FFF7FEFF 		bl	__aeabi_dmul
+ 433              	.LVL54:
+ 434 00f6 0246     		mov	r2, r0
+ 435 00f8 0B46     		mov	r3, r1
+ 436 00fa 4046     		mov	r0, r8
+ 437 00fc 4946     		mov	r1, r9
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 14
+
+
+ 438 00fe FFF7FEFF 		bl	__aeabi_dadd
+ 439              	.LVL55:
+ 440 0102 8046     		mov	r8, r0
+ 441 0104 8946     		mov	r9, r1
+ 442 0106 6949     		ldr	r1, .L35+92
+ 443 0108 2046     		mov	r0, r4
+ 444 010a FFF7FEFF 		bl	powf
+ 445              	.LVL56:
+ 446 010e FFF7FEFF 		bl	__aeabi_f2d
+ 447              	.LVL57:
+ 448 0112 53A3     		adr	r3, .L35+16
+ 449 0114 D3E90023 		ldrd	r2, [r3]
+ 450 0118 FFF7FEFF 		bl	__aeabi_dmul
+ 451              	.LVL58:
+ 452 011c 0246     		mov	r2, r0
+ 453 011e 0B46     		mov	r3, r1
+ 454 0120 4046     		mov	r0, r8
+ 455 0122 4946     		mov	r1, r9
+ 456 0124 FFF7FEFF 		bl	__aeabi_dadd
+ 457              	.LVL59:
+ 458 0128 8046     		mov	r8, r0
+ 459 012a 8946     		mov	r9, r1
+ 460 012c 4FF08041 		mov	r1, #1073741824
+ 461 0130 2046     		mov	r0, r4
+ 462 0132 FFF7FEFF 		bl	powf
+ 463              	.LVL60:
+ 464 0136 FFF7FEFF 		bl	__aeabi_f2d
+ 465              	.LVL61:
+ 466 013a 4BA3     		adr	r3, .L35+24
+ 467 013c D3E90023 		ldrd	r2, [r3]
+ 468 0140 FFF7FEFF 		bl	__aeabi_dmul
+ 469              	.LVL62:
+ 470 0144 0246     		mov	r2, r0
+ 471 0146 0B46     		mov	r3, r1
+ 472 0148 4046     		mov	r0, r8
+ 473 014a 4946     		mov	r1, r9
+ 474 014c FFF7FEFF 		bl	__aeabi_dadd
+ 475              	.LVL63:
+ 476 0150 8046     		mov	r8, r0
+ 477 0152 8946     		mov	r9, r1
+ 478 0154 2046     		mov	r0, r4
+ 479 0156 FFF7FEFF 		bl	__aeabi_f2d
+ 480              	.LVL64:
+ 481 015a 45A3     		adr	r3, .L35+32
+ 482 015c D3E90023 		ldrd	r2, [r3]
+ 483 0160 FFF7FEFF 		bl	__aeabi_dmul
+ 484              	.LVL65:
+ 485 0164 0246     		mov	r2, r0
+ 486 0166 0B46     		mov	r3, r1
+ 487 0168 4046     		mov	r0, r8
+ 488 016a 4946     		mov	r1, r9
+ 489 016c FFF7FEFF 		bl	__aeabi_dsub
+ 490              	.LVL66:
+ 491 0170 41A3     		adr	r3, .L35+40
+ 492 0172 D3E90023 		ldrd	r2, [r3]
+ 493 0176 FFF7FEFF 		bl	__aeabi_dadd
+ 494              	.LVL67:
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 15
+
+
+ 495 017a FFF7FEFF 		bl	__aeabi_d2f
+ 496              	.LVL68:
+ 497 017e 0546     		mov	r5, r0
+ 498              	.LVL69:
+ 499 0180 454B     		ldr	r3, .L35+72
+ 500 0182 1860     		str	r0, [r3]	@ float
+ 194:main.c        ****                 {
+ 501              		.loc 1 194 0
+ 502 0184 454B     		ldr	r3, .L35+76
+ 503 0186 5968     		ldr	r1, [r3, #4]	@ float
+ 504 0188 FFF7FEFF 		bl	__aeabi_fcmpgt
+ 505              	.LVL70:
+ 506 018c 30B1     		cbz	r0, .L22
+ 194:main.c        ****                 {
+ 507              		.loc 1 194 0 is_stmt 0 discriminator 1
+ 508 018e 4849     		ldr	r1, .L35+96
+ 509 0190 2846     		mov	r0, r5
+ 510 0192 FFF7FEFF 		bl	__aeabi_fcmplt
+ 511              	.LVL71:
+ 512 0196 08B1     		cbz	r0, .L22
+ 196:main.c        ****                 }
+ 513              		.loc 1 196 0 is_stmt 1
+ 514 0198 404B     		ldr	r3, .L35+76
+ 515 019a 5D60     		str	r5, [r3, #4]	@ float
+ 516              	.L22:
+ 198:main.c        ****                 {
+ 517              		.loc 1 198 0
+ 518 019c 404B     		ldr	r3, .L35+80
+ 519 019e 1968     		ldr	r1, [r3]	@ float
+ 520 01a0 2846     		mov	r0, r5
+ 521 01a2 FFF7FEFF 		bl	__aeabi_fcmplt
+ 522              	.LVL72:
+ 523 01a6 30B1     		cbz	r0, .L25
+ 198:main.c        ****                 {
+ 524              		.loc 1 198 0 is_stmt 0 discriminator 1
+ 525 01a8 4249     		ldr	r1, .L35+100
+ 526 01aa 2846     		mov	r0, r5
+ 527 01ac FFF7FEFF 		bl	__aeabi_fcmpgt
+ 528              	.LVL73:
+ 529 01b0 08B1     		cbz	r0, .L25
+ 200:main.c        ****                 }
+ 530              		.loc 1 200 0 is_stmt 1
+ 531 01b2 3B4B     		ldr	r3, .L35+80
+ 532 01b4 1D60     		str	r5, [r3]	@ float
+ 533              	.L25:
+ 203:main.c        ****                 UART_STRING("Channel %d is %6.3f C Degree", outputstring, (int)ch, Temperature, MOD
+ 534              		.loc 1 203 0
+ 535 01b6 DFF8E480 		ldr	r8, .L35+76
+ 536 01ba 394F     		ldr	r7, .L35+80
+ 537 01bc 3968     		ldr	r1, [r7]	@ float
+ 538 01be D8F80400 		ldr	r0, [r8, #4]	@ float
+ 539 01c2 FFF7FEFF 		bl	__aeabi_fadd
+ 540              	.LVL74:
+ 541 01c6 4FF07C51 		mov	r1, #1056964608
+ 542 01ca FFF7FEFF 		bl	__aeabi_fmul
+ 543              	.LVL75:
+ 544 01ce C8F80800 		str	r0, [r8, #8]	@ float
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 16
+
+
+ 204:main.c        ****                 sprintf(outputstring, "max temp is %6.3f C/Degree", max_temp);
+ 545              		.loc 1 204 0
+ 546 01d2 2D4C     		ldr	r4, .L35+56
+ 547              	.LVL76:
+ 548 01d4 0123     		movs	r3, #1
+ 549 01d6 0093     		str	r3, [sp]
+ 550 01d8 2B46     		mov	r3, r5
+ 551 01da 3246     		mov	r2, r6
+ 552 01dc 2146     		mov	r1, r4
+ 553 01de 3648     		ldr	r0, .L35+104
+ 554 01e0 FFF7FEFF 		bl	UART_STRING
+ 555              	.LVL77:
+ 205:main.c        ****                 UART_1_PutString(outputstring); // print value to UART
+ 556              		.loc 1 205 0
+ 557 01e4 D8F80400 		ldr	r0, [r8, #4]	@ float
+ 558 01e8 FFF7FEFF 		bl	__aeabi_f2d
+ 559              	.LVL78:
+ 560 01ec 0246     		mov	r2, r0
+ 561 01ee 0B46     		mov	r3, r1
+ 562 01f0 3249     		ldr	r1, .L35+108
+ 563 01f2 2046     		mov	r0, r4
+ 564 01f4 FFF7FEFF 		bl	sprintf
+ 565              	.LVL79:
+ 206:main.c        ****                 UART_1_PutString("\r\n");
+ 566              		.loc 1 206 0
+ 567 01f8 2046     		mov	r0, r4
+ 568 01fa FFF7FEFF 		bl	UART_1_PutString
+ 569              	.LVL80:
+ 207:main.c        ****                 sprintf(outputstring, "min temp is %6.3f C/Degree", min_temp);
+ 570              		.loc 1 207 0
+ 571 01fe 254D     		ldr	r5, .L35+68
+ 572 0200 2846     		mov	r0, r5
+ 573 0202 FFF7FEFF 		bl	UART_1_PutString
+ 574              	.LVL81:
+ 208:main.c        ****                 UART_1_PutString(outputstring); // print value to UART
+ 575              		.loc 1 208 0
+ 576 0206 3868     		ldr	r0, [r7]	@ float
+ 577 0208 FFF7FEFF 		bl	__aeabi_f2d
+ 578              	.LVL82:
+ 579 020c 0246     		mov	r2, r0
+ 580 020e 0B46     		mov	r3, r1
+ 581 0210 2B49     		ldr	r1, .L35+112
+ 582 0212 2046     		mov	r0, r4
+ 583 0214 FFF7FEFF 		bl	sprintf
+ 584              	.LVL83:
+ 209:main.c        ****                 UART_1_PutString("\r\n");
+ 585              		.loc 1 209 0
+ 586 0218 2046     		mov	r0, r4
+ 587 021a FFF7FEFF 		bl	UART_1_PutString
+ 588              	.LVL84:
+ 210:main.c        ****                 }
+ 589              		.loc 1 210 0
+ 590 021e 2846     		mov	r0, r5
+ 591 0220 FFF7FEFF 		bl	UART_1_PutString
+ 592              	.LVL85:
+ 593              	.L21:
+ 214:main.c        ****             ADC_SAR_1_StopConvert();
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 17
+
+
+ 594              		.loc 1 214 0 discriminator 2
+ 595 0224 6420     		movs	r0, #100
+ 596 0226 FFF7FEFF 		bl	CyDelay
+ 597              	.LVL86:
+ 215:main.c        ****             //finished one channel
+ 598              		.loc 1 215 0 discriminator 2
+ 599 022a FFF7FEFF 		bl	ADC_SAR_1_StopConvert
+ 600              	.LVL87:
+ 601              	.LBE2:
+ 163:main.c        ****         {
+ 602              		.loc 1 163 0 discriminator 2
+ 603 022e 0136     		adds	r6, r6, #1
+ 604              	.LVL88:
+ 605 0230 B6B2     		uxth	r6, r6
+ 606              	.LVL89:
+ 607              	.L16:
+ 163:main.c        ****         {
+ 608              		.loc 1 163 0 is_stmt 0 discriminator 1
+ 609 0232 422E     		cmp	r6, #66
+ 610 0234 7FF61EAF 		bls	.L28
+ 219:main.c        ****         UART_STRING("one interation", outputstring, (int)DUMMY, DUMMY, MODE_NORMAL);
+ 611              		.loc 1 219 0 is_stmt 1
+ 612 0238 0AF1010A 		add	r10, r10, #1
+ 613              	.LVL90:
+ 220:main.c        ****         //CyDelay(1000);
+ 614              		.loc 1 220 0
+ 615 023c 0023     		movs	r3, #0
+ 616 023e 0093     		str	r3, [sp]
+ 617 0240 4FF07E53 		mov	r3, #1065353216
+ 618 0244 0122     		movs	r2, #1
+ 619 0246 1049     		ldr	r1, .L35+56
+ 620 0248 1E48     		ldr	r0, .L35+116
+ 621 024a FFF7FEFF 		bl	UART_STRING
+ 622              	.LVL91:
+ 222:main.c        **** }
+ 623              		.loc 1 222 0
+ 624 024e F8E6     		b	.L29
+ 625              	.L36:
+ 626              		.align	3
+ 627              	.L35:
+ 628 0250 CDCCCCCC 		.word	-858993459
+ 629 0254 CC2687C0 		.word	-1064884532
+ 630 0258 CDCCCCCC 		.word	-858993459
+ 631 025c CC90BB40 		.word	1086034124
+ 632 0260 00000000 		.word	0
+ 633 0264 002CDAC0 		.word	-1059443712
+ 634 0268 00000000 		.word	0
+ 635 026c 80C5E840 		.word	1088996736
+ 636 0270 00000000 		.word	0
+ 637 0274 E06BE740 		.word	1088908256
+ 638 0278 00000000 		.word	0
+ 639 027c 40C9D140 		.word	1087490368
+ 640 0280 00000000 		.word	Timer_Int_Handler
+ 641 0284 00000000 		.word	ISR_CAN
+ 642 0288 00000000 		.word	outputstring
+ 643 028c 24000000 		.word	.LC2
+ 644 0290 34000000 		.word	.LC3
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 18
+
+
+ 645 0294 00000000 		.word	.LC0
+ 646 0298 00000000 		.word	Temperature
+ 647 029c 00000000 		.word	.LANCHOR0
+ 648 02a0 00000000 		.word	.LANCHOR1
+ 649 02a4 CDCCCCCC 		.word	-858993459
+ 650 02a8 0000A040 		.word	1084227584
+ 651 02ac 00004040 		.word	1077936128
+ 652 02b0 0000F042 		.word	1123024896
+ 653 02b4 000020C2 		.word	-1038090240
+ 654 02b8 4C000000 		.word	.LC4
+ 655 02bc 6C000000 		.word	.LC5
+ 656 02c0 88000000 		.word	.LC6
+ 657 02c4 A4000000 		.word	.LC7
+ 658              		.cfi_endproc
+ 659              	.LFE66:
+ 660              		.size	main, .-main
+ 661              		.global	isrFlag
+ 662              		.comm	Temperature,4,4
+ 663              		.global	avg_temp
+ 664              		.global	min_temp
+ 665              		.global	max_temp
+ 666              		.comm	outputstring,50,4
+ 667              		.global	switchState
+ 668              		.data
+ 669              		.align	2
+ 670              		.set	.LANCHOR1,. + 0
+ 671              		.type	min_temp, %object
+ 672              		.size	min_temp, 4
+ 673              	min_temp:
+ 674 0000 00007041 		.word	1097859072
+ 675              		.type	switchState, %object
+ 676              		.size	switchState, 1
+ 677              	switchState:
+ 678 0004 01       		.byte	1
+ 679              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 680              		.align	2
+ 681              	.LC0:
+ 682 0000 0D0A00   		.ascii	"\015\012\000"
+ 683 0003 00       		.space	1
+ 684              	.LC1:
+ 685 0004 4368616E 		.ascii	"Channel %d is %6.3f C/Degree\000"
+ 685      6E656C20 
+ 685      25642069 
+ 685      73202536 
+ 685      2E336620 
+ 686 0021 000000   		.space	3
+ 687              	.LC2:
+ 688 0024 53746172 		.ascii	"Starting now\000"
+ 688      74696E67 
+ 688      206E6F77 
+ 688      00
+ 689 0031 000000   		.space	3
+ 690              	.LC3:
+ 691 0034 52656672 		.ascii	"Refreshed, count = %d\000"
+ 691      65736865 
+ 691      642C2063 
+ 691      6F756E74 
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 19
+
+
+ 691      203D2025 
+ 692 004a 0000     		.space	2
+ 693              	.LC4:
+ 694 004c 4368616E 		.ascii	"Channel %d is %6.3f C Degree\000"
+ 694      6E656C20 
+ 694      25642069 
+ 694      73202536 
+ 694      2E336620 
+ 695 0069 000000   		.space	3
+ 696              	.LC5:
+ 697 006c 6D617820 		.ascii	"max temp is %6.3f C/Degree\000"
+ 697      74656D70 
+ 697      20697320 
+ 697      25362E33 
+ 697      6620432F 
+ 698 0087 00       		.space	1
+ 699              	.LC6:
+ 700 0088 6D696E20 		.ascii	"min temp is %6.3f C/Degree\000"
+ 700      74656D70 
+ 700      20697320 
+ 700      25362E33 
+ 700      6620432F 
+ 701 00a3 00       		.space	1
+ 702              	.LC7:
+ 703 00a4 6F6E6520 		.ascii	"one interation\000"
+ 703      696E7465 
+ 703      72617469 
+ 703      6F6E00
+ 704              		.bss
+ 705              		.align	2
+ 706              		.set	.LANCHOR0,. + 0
+ 707              		.type	isrFlag, %object
+ 708              		.size	isrFlag, 1
+ 709              	isrFlag:
+ 710 0000 00       		.space	1
+ 711 0001 000000   		.space	3
+ 712              		.type	max_temp, %object
+ 713              		.size	max_temp, 4
+ 714              	max_temp:
+ 715 0004 00000000 		.space	4
+ 716              		.type	avg_temp, %object
+ 717              		.size	avg_temp, 4
+ 718              	avg_temp:
+ 719 0008 00000000 		.space	4
+ 720              		.text
+ 721              	.Letext0:
+ 722              		.file 2 "c:\\program files (x86)\\cypress\\psoc creator\\4.2\\psoc creator\\import\\gnu\\arm\\5.4.
+ 723              		.file 3 "c:\\program files (x86)\\cypress\\psoc creator\\4.2\\psoc creator\\import\\gnu\\arm\\5.4.
+ 724              		.file 4 "Generated_Source\\PSoC5/cytypes.h"
+ 725              		.file 5 "Generated_Source\\PSoC5/CAN.h"
+ 726              		.file 6 "Generated_Source\\PSoC5/core_cm3.h"
+ 727              		.file 7 "Generated_Source\\PSoC5/UART_1.h"
+ 728              		.file 8 "c:\\program files (x86)\\cypress\\psoc creator\\4.2\\psoc creator\\import\\gnu\\arm\\5.4.
+ 729              		.file 9 "Generated_Source\\PSoC5/ADC_SAR_1.h"
+ 730              		.file 10 "Generated_Source\\PSoC5/AMux.h"
+ 731              		.file 11 "c:\\program files (x86)\\cypress\\psoc creator\\4.2\\psoc creator\\import\\gnu\\arm\\5.4
+ 732              		.file 12 "Generated_Source\\PSoC5/CyLib.h"
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 20
+
+
+ 733              		.file 13 "Generated_Source\\PSoC5/Timer.h"
+ 734              		.file 14 "Generated_Source\\PSoC5/Timer_Int.h"
+ 735              		.section	.debug_info,"",%progbits
+ 736              	.Ldebug_info0:
+ 737 0000 06080000 		.4byte	0x806
+ 738 0004 0400     		.2byte	0x4
+ 739 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 740 000a 04       		.byte	0x4
+ 741 000b 01       		.uleb128 0x1
+ 742 000c 9D030000 		.4byte	.LASF74
+ 743 0010 0C       		.byte	0xc
+ 744 0011 6F020000 		.4byte	.LASF75
+ 745 0015 A9020000 		.4byte	.LASF76
+ 746 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 747 001d 00000000 		.4byte	0
+ 748 0021 00000000 		.4byte	.Ldebug_line0
+ 749 0025 02       		.uleb128 0x2
+ 750 0026 04       		.byte	0x4
+ 751 0027 04       		.byte	0x4
+ 752 0028 0B010000 		.4byte	.LASF0
+ 753 002c 02       		.uleb128 0x2
+ 754 002d 08       		.byte	0x8
+ 755 002e 07       		.byte	0x7
+ 756 002f 7A010000 		.4byte	.LASF1
+ 757 0033 02       		.uleb128 0x2
+ 758 0034 04       		.byte	0x4
+ 759 0035 07       		.byte	0x7
+ 760 0036 91010000 		.4byte	.LASF2
+ 761 003a 02       		.uleb128 0x2
+ 762 003b 02       		.byte	0x2
+ 763 003c 07       		.byte	0x7
+ 764 003d C2010000 		.4byte	.LASF3
+ 765 0041 03       		.uleb128 0x3
+ 766 0042 E0010000 		.4byte	.LASF7
+ 767 0046 02       		.byte	0x2
+ 768 0047 1B       		.byte	0x1b
+ 769 0048 4C000000 		.4byte	0x4c
+ 770 004c 02       		.uleb128 0x2
+ 771 004d 01       		.byte	0x1
+ 772 004e 06       		.byte	0x6
+ 773 004f 6E010000 		.4byte	.LASF4
+ 774 0053 02       		.uleb128 0x2
+ 775 0054 01       		.byte	0x1
+ 776 0055 08       		.byte	0x8
+ 777 0056 58010000 		.4byte	.LASF5
+ 778 005a 02       		.uleb128 0x2
+ 779 005b 02       		.byte	0x2
+ 780 005c 05       		.byte	0x5
+ 781 005d 4F000000 		.4byte	.LASF6
+ 782 0061 03       		.uleb128 0x3
+ 783 0062 53030000 		.4byte	.LASF8
+ 784 0066 02       		.byte	0x2
+ 785 0067 3F       		.byte	0x3f
+ 786 0068 6C000000 		.4byte	0x6c
+ 787 006c 02       		.uleb128 0x2
+ 788 006d 04       		.byte	0x4
+ 789 006e 05       		.byte	0x5
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 21
+
+
+ 790 006f 2D010000 		.4byte	.LASF9
+ 791 0073 02       		.uleb128 0x2
+ 792 0074 04       		.byte	0x4
+ 793 0075 07       		.byte	0x7
+ 794 0076 A7010000 		.4byte	.LASF10
+ 795 007a 02       		.uleb128 0x2
+ 796 007b 08       		.byte	0x8
+ 797 007c 05       		.byte	0x5
+ 798 007d 19010000 		.4byte	.LASF11
+ 799 0081 04       		.uleb128 0x4
+ 800 0082 04       		.byte	0x4
+ 801 0083 05       		.byte	0x5
+ 802 0084 696E7400 		.ascii	"int\000"
+ 803 0088 03       		.uleb128 0x3
+ 804 0089 32000000 		.4byte	.LASF12
+ 805 008d 03       		.byte	0x3
+ 806 008e 14       		.byte	0x14
+ 807 008f 41000000 		.4byte	0x41
+ 808 0093 03       		.uleb128 0x3
+ 809 0094 1A020000 		.4byte	.LASF13
+ 810 0098 03       		.byte	0x3
+ 811 0099 2C       		.byte	0x2c
+ 812 009a 61000000 		.4byte	0x61
+ 813 009e 03       		.uleb128 0x3
+ 814 009f D7000000 		.4byte	.LASF14
+ 815 00a3 04       		.byte	0x4
+ 816 00a4 C2       		.byte	0xc2
+ 817 00a5 53000000 		.4byte	0x53
+ 818 00a9 03       		.uleb128 0x3
+ 819 00aa D0000000 		.4byte	.LASF15
+ 820 00ae 04       		.byte	0x4
+ 821 00af C3       		.byte	0xc3
+ 822 00b0 3A000000 		.4byte	0x3a
+ 823 00b4 02       		.uleb128 0x2
+ 824 00b5 08       		.byte	0x8
+ 825 00b6 04       		.byte	0x4
+ 826 00b7 91020000 		.4byte	.LASF16
+ 827 00bb 02       		.uleb128 0x2
+ 828 00bc 01       		.byte	0x1
+ 829 00bd 08       		.byte	0x8
+ 830 00be F0010000 		.4byte	.LASF17
+ 831 00c2 05       		.uleb128 0x5
+ 832 00c3 76020000 		.4byte	.LASF18
+ 833 00c7 04       		.byte	0x4
+ 834 00c8 6C01     		.2byte	0x16c
+ 835 00ca CE000000 		.4byte	0xce
+ 836 00ce 06       		.uleb128 0x6
+ 837 00cf 9E000000 		.4byte	0x9e
+ 838 00d3 02       		.uleb128 0x2
+ 839 00d4 08       		.byte	0x8
+ 840 00d5 04       		.byte	0x4
+ 841 00d6 76000000 		.4byte	.LASF19
+ 842 00da 02       		.uleb128 0x2
+ 843 00db 04       		.byte	0x4
+ 844 00dc 07       		.byte	0x7
+ 845 00dd 59000000 		.4byte	.LASF20
+ 846 00e1 07       		.uleb128 0x7
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 22
+
+
+ 847 00e2 04       		.byte	0x4
+ 848 00e3 BB000000 		.4byte	0xbb
+ 849 00e7 08       		.uleb128 0x8
+ 850 00e8 08       		.byte	0x8
+ 851 00e9 05       		.byte	0x5
+ 852 00ea 75       		.byte	0x75
+ 853 00eb FC000000 		.4byte	0xfc
+ 854 00ef 09       		.uleb128 0x9
+ 855 00f0 43010000 		.4byte	.LASF22
+ 856 00f4 05       		.byte	0x5
+ 857 00f5 77       		.byte	0x77
+ 858 00f6 0C010000 		.4byte	0x10c
+ 859 00fa 00       		.byte	0
+ 860 00fb 00       		.byte	0
+ 861 00fc 0A       		.uleb128 0xa
+ 862 00fd C2000000 		.4byte	0xc2
+ 863 0101 0C010000 		.4byte	0x10c
+ 864 0105 0B       		.uleb128 0xb
+ 865 0106 DA000000 		.4byte	0xda
+ 866 010a 07       		.byte	0x7
+ 867 010b 00       		.byte	0
+ 868 010c 06       		.uleb128 0x6
+ 869 010d FC000000 		.4byte	0xfc
+ 870 0111 03       		.uleb128 0x3
+ 871 0112 23000000 		.4byte	.LASF21
+ 872 0116 05       		.byte	0x5
+ 873 0117 78       		.byte	0x78
+ 874 0118 E7000000 		.4byte	0xe7
+ 875 011c 08       		.uleb128 0x8
+ 876 011d 04       		.byte	0x4
+ 877 011e 05       		.byte	0x5
+ 878 011f 7B       		.byte	0x7b
+ 879 0120 31010000 		.4byte	0x131
+ 880 0124 09       		.uleb128 0x9
+ 881 0125 43010000 		.4byte	.LASF22
+ 882 0129 05       		.byte	0x5
+ 883 012a 7D       		.byte	0x7d
+ 884 012b 41010000 		.4byte	0x141
+ 885 012f 00       		.byte	0
+ 886 0130 00       		.byte	0
+ 887 0131 0A       		.uleb128 0xa
+ 888 0132 C2000000 		.4byte	0xc2
+ 889 0136 41010000 		.4byte	0x141
+ 890 013a 0B       		.uleb128 0xb
+ 891 013b DA000000 		.4byte	0xda
+ 892 013f 03       		.byte	0x3
+ 893 0140 00       		.byte	0
+ 894 0141 06       		.uleb128 0x6
+ 895 0142 31010000 		.4byte	0x131
+ 896 0146 03       		.uleb128 0x3
+ 897 0147 49020000 		.4byte	.LASF23
+ 898 014b 05       		.byte	0x5
+ 899 014c 7E       		.byte	0x7e
+ 900 014d 1C010000 		.4byte	0x11c
+ 901 0151 08       		.uleb128 0x8
+ 902 0152 20       		.byte	0x20
+ 903 0153 05       		.byte	0x5
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 23
+
+
+ 904 0154 A0       		.byte	0xa0
+ 905 0155 AE010000 		.4byte	0x1ae
+ 906 0159 09       		.uleb128 0x9
+ 907 015a 22020000 		.4byte	.LASF24
+ 908 015e 05       		.byte	0x5
+ 909 015f A2       		.byte	0xa2
+ 910 0160 46010000 		.4byte	0x146
+ 911 0164 00       		.byte	0
+ 912 0165 09       		.uleb128 0x9
+ 913 0166 DD000000 		.4byte	.LASF25
+ 914 016a 05       		.byte	0x5
+ 915 016b A3       		.byte	0xa3
+ 916 016c 46010000 		.4byte	0x146
+ 917 0170 04       		.byte	0x4
+ 918 0171 09       		.uleb128 0x9
+ 919 0172 82000000 		.4byte	.LASF26
+ 920 0176 05       		.byte	0x5
+ 921 0177 A4       		.byte	0xa4
+ 922 0178 11010000 		.4byte	0x111
+ 923 017c 08       		.byte	0x8
+ 924 017d 09       		.uleb128 0x9
+ 925 017e 33040000 		.4byte	.LASF27
+ 926 0182 05       		.byte	0x5
+ 927 0183 A5       		.byte	0xa5
+ 928 0184 46010000 		.4byte	0x146
+ 929 0188 10       		.byte	0x10
+ 930 0189 09       		.uleb128 0x9
+ 931 018a F8000000 		.4byte	.LASF28
+ 932 018e 05       		.byte	0x5
+ 933 018f A6       		.byte	0xa6
+ 934 0190 46010000 		.4byte	0x146
+ 935 0194 14       		.byte	0x14
+ 936 0195 09       		.uleb128 0x9
+ 937 0196 51010000 		.4byte	.LASF29
+ 938 019a 05       		.byte	0x5
+ 939 019b A7       		.byte	0xa7
+ 940 019c 46010000 		.4byte	0x146
+ 941 01a0 18       		.byte	0x18
+ 942 01a1 09       		.uleb128 0x9
+ 943 01a2 E9010000 		.4byte	.LASF30
+ 944 01a6 05       		.byte	0x5
+ 945 01a7 A8       		.byte	0xa8
+ 946 01a8 46010000 		.4byte	0x146
+ 947 01ac 1C       		.byte	0x1c
+ 948 01ad 00       		.byte	0
+ 949 01ae 03       		.uleb128 0x3
+ 950 01af F5010000 		.4byte	.LASF31
+ 951 01b3 05       		.byte	0x5
+ 952 01b4 A9       		.byte	0xa9
+ 953 01b5 51010000 		.4byte	0x151
+ 954 01b9 08       		.uleb128 0x8
+ 955 01ba 10       		.byte	0x10
+ 956 01bb 05       		.byte	0x5
+ 957 01bc AC       		.byte	0xac
+ 958 01bd E6010000 		.4byte	0x1e6
+ 959 01c1 09       		.uleb128 0x9
+ 960 01c2 27010000 		.4byte	.LASF32
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 24
+
+
+ 961 01c6 05       		.byte	0x5
+ 962 01c7 AE       		.byte	0xae
+ 963 01c8 46010000 		.4byte	0x146
+ 964 01cc 00       		.byte	0
+ 965 01cd 09       		.uleb128 0x9
+ 966 01ce 3E010000 		.4byte	.LASF33
+ 967 01d2 05       		.byte	0x5
+ 968 01d3 AF       		.byte	0xaf
+ 969 01d4 46010000 		.4byte	0x146
+ 970 01d8 04       		.byte	0x4
+ 971 01d9 09       		.uleb128 0x9
+ 972 01da 6F000000 		.4byte	.LASF34
+ 973 01de 05       		.byte	0x5
+ 974 01df B0       		.byte	0xb0
+ 975 01e0 11010000 		.4byte	0x111
+ 976 01e4 08       		.byte	0x8
+ 977 01e5 00       		.byte	0
+ 978 01e6 03       		.uleb128 0x3
+ 979 01e7 15000000 		.4byte	.LASF35
+ 980 01eb 05       		.byte	0x5
+ 981 01ec B1       		.byte	0xb1
+ 982 01ed B9010000 		.4byte	0x1b9
+ 983 01f1 0C       		.uleb128 0xc
+ 984 01f2 5D030000 		.4byte	.LASF77
+ 985 01f6 01       		.byte	0x1
+ 986 01f7 EF       		.byte	0xef
+ 987 01f8 00000000 		.4byte	.LFB67
+ 988 01fc 24000000 		.4byte	.LFE67-.LFB67
+ 989 0200 01       		.uleb128 0x1
+ 990 0201 9C       		.byte	0x9c
+ 991 0202 0D       		.uleb128 0xd
+ 992 0203 22030000 		.4byte	.LASF40
+ 993 0207 01       		.byte	0x1
+ 994 0208 4D       		.byte	0x4d
+ 995 0209 00000000 		.4byte	.LFB65
+ 996 020d 88000000 		.4byte	.LFE65-.LFB65
+ 997 0211 01       		.uleb128 0x1
+ 998 0212 9C       		.byte	0x9c
+ 999 0213 7E020000 		.4byte	0x27e
+ 1000 0217 0E       		.uleb128 0xe
+ 1001 0218 48010000 		.4byte	.LASF36
+ 1002 021c 01       		.byte	0x1
+ 1003 021d 52       		.byte	0x52
+ 1004 021e 81000000 		.4byte	0x81
+ 1005 0222 02       		.byte	0x2
+ 1006 0223 0E       		.uleb128 0xe
+ 1007 0224 28020000 		.4byte	.LASF37
+ 1008 0228 01       		.byte	0x1
+ 1009 0229 53       		.byte	0x53
+ 1010 022a 81000000 		.4byte	0x81
+ 1011 022e 02       		.byte	0x2
+ 1012 022f 0E       		.uleb128 0xe
+ 1013 0230 11010000 		.4byte	.LASF38
+ 1014 0234 01       		.byte	0x1
+ 1015 0235 54       		.byte	0x54
+ 1016 0236 81000000 		.4byte	0x81
+ 1017 023a 01       		.byte	0x1
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 25
+
+
+ 1018 023b 0F       		.uleb128 0xf
+ 1019 023c 39000000 		.4byte	.LASF39
+ 1020 0240 01       		.byte	0x1
+ 1021 0241 66       		.byte	0x66
+ 1022 0242 BB000000 		.4byte	0xbb
+ 1023 0246 00000000 		.4byte	.LLST0
+ 1024 024a 10       		.uleb128 0x10
+ 1025 024b 64000000 		.4byte	.LVL8
+ 1026 024f 41070000 		.4byte	0x741
+ 1027 0253 11       		.uleb128 0x11
+ 1028 0254 6A000000 		.4byte	.LVL9
+ 1029 0258 4D070000 		.4byte	0x74d
+ 1030 025c 6A020000 		.4byte	0x26a
+ 1031 0260 12       		.uleb128 0x12
+ 1032 0261 01       		.uleb128 0x1
+ 1033 0262 50       		.byte	0x50
+ 1034 0263 05       		.uleb128 0x5
+ 1035 0264 03       		.byte	0x3
+ 1036 0265 00000000 		.4byte	outputstring
+ 1037 0269 00       		.byte	0
+ 1038 026a 13       		.uleb128 0x13
+ 1039 026b 70000000 		.4byte	.LVL10
+ 1040 026f 4D070000 		.4byte	0x74d
+ 1041 0273 12       		.uleb128 0x12
+ 1042 0274 01       		.uleb128 0x1
+ 1043 0275 50       		.byte	0x50
+ 1044 0276 05       		.uleb128 0x5
+ 1045 0277 03       		.byte	0x3
+ 1046 0278 00000000 		.4byte	.LC0
+ 1047 027c 00       		.byte	0
+ 1048 027d 00       		.byte	0
+ 1049 027e 0D       		.uleb128 0xd
+ 1050 027f BA000000 		.4byte	.LASF41
+ 1051 0283 01       		.byte	0x1
+ 1052 0284 3D       		.byte	0x3d
+ 1053 0285 00000000 		.4byte	.LFB64
+ 1054 0289 54000000 		.4byte	.LFE64-.LFB64
+ 1055 028d 01       		.uleb128 0x1
+ 1056 028e 9C       		.byte	0x9c
+ 1057 028f 6E030000 		.4byte	0x36e
+ 1058 0293 14       		.uleb128 0x14
+ 1059 0294 C6000000 		.4byte	.LASF42
+ 1060 0298 01       		.byte	0x1
+ 1061 0299 3D       		.byte	0x3d
+ 1062 029a E1000000 		.4byte	0xe1
+ 1063 029e 13000000 		.4byte	.LLST1
+ 1064 02a2 14       		.uleb128 0x14
+ 1065 02a3 42000000 		.4byte	.LASF43
+ 1066 02a7 01       		.byte	0x1
+ 1067 02a8 3D       		.byte	0x3d
+ 1068 02a9 E1000000 		.4byte	0xe1
+ 1069 02ad 3F000000 		.4byte	.LLST2
+ 1070 02b1 15       		.uleb128 0x15
+ 1071 02b2 636800   		.ascii	"ch\000"
+ 1072 02b5 01       		.byte	0x1
+ 1073 02b6 3D       		.byte	0x3d
+ 1074 02b7 81000000 		.4byte	0x81
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 26
+
+
+ 1075 02bb 6B000000 		.4byte	.LLST3
+ 1076 02bf 14       		.uleb128 0x14
+ 1077 02c0 36010000 		.4byte	.LASF44
+ 1078 02c4 01       		.byte	0x1
+ 1079 02c5 3D       		.byte	0x3d
+ 1080 02c6 25000000 		.4byte	0x25
+ 1081 02ca 97000000 		.4byte	.LLST4
+ 1082 02ce 14       		.uleb128 0x14
+ 1083 02cf 89000000 		.4byte	.LASF45
+ 1084 02d3 01       		.byte	0x1
+ 1085 02d4 3D       		.byte	0x3d
+ 1086 02d5 81000000 		.4byte	0x81
+ 1087 02d9 C5000000 		.4byte	.LLST5
+ 1088 02dd 11       		.uleb128 0x11
+ 1089 02de 16000000 		.4byte	.LVL14
+ 1090 02e2 58070000 		.4byte	0x758
+ 1091 02e6 F8020000 		.4byte	0x2f8
+ 1092 02ea 12       		.uleb128 0x12
+ 1093 02eb 01       		.uleb128 0x1
+ 1094 02ec 50       		.byte	0x50
+ 1095 02ed 02       		.uleb128 0x2
+ 1096 02ee 75       		.byte	0x75
+ 1097 02ef 00       		.sleb128 0
+ 1098 02f0 12       		.uleb128 0x12
+ 1099 02f1 01       		.uleb128 0x1
+ 1100 02f2 51       		.byte	0x51
+ 1101 02f3 03       		.uleb128 0x3
+ 1102 02f4 F3       		.byte	0xf3
+ 1103 02f5 01       		.uleb128 0x1
+ 1104 02f6 50       		.byte	0x50
+ 1105 02f7 00       		.byte	0
+ 1106 02f8 11       		.uleb128 0x11
+ 1107 02f9 1C000000 		.4byte	.LVL15
+ 1108 02fd 4D070000 		.4byte	0x74d
+ 1109 0301 0C030000 		.4byte	0x30c
+ 1110 0305 12       		.uleb128 0x12
+ 1111 0306 01       		.uleb128 0x1
+ 1112 0307 50       		.byte	0x50
+ 1113 0308 02       		.uleb128 0x2
+ 1114 0309 75       		.byte	0x75
+ 1115 030a 00       		.sleb128 0
+ 1116 030b 00       		.byte	0
+ 1117 030c 11       		.uleb128 0x11
+ 1118 030d 22000000 		.4byte	.LVL16
+ 1119 0311 4D070000 		.4byte	0x74d
+ 1120 0315 23030000 		.4byte	0x323
+ 1121 0319 12       		.uleb128 0x12
+ 1122 031a 01       		.uleb128 0x1
+ 1123 031b 50       		.byte	0x50
+ 1124 031c 05       		.uleb128 0x5
+ 1125 031d 03       		.byte	0x3
+ 1126 031e 00000000 		.4byte	.LC0
+ 1127 0322 00       		.byte	0
+ 1128 0323 11       		.uleb128 0x11
+ 1129 0324 3A000000 		.4byte	.LVL18
+ 1130 0328 58070000 		.4byte	0x758
+ 1131 032c 46030000 		.4byte	0x346
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 27
+
+
+ 1132 0330 12       		.uleb128 0x12
+ 1133 0331 01       		.uleb128 0x1
+ 1134 0332 50       		.byte	0x50
+ 1135 0333 02       		.uleb128 0x2
+ 1136 0334 75       		.byte	0x75
+ 1137 0335 00       		.sleb128 0
+ 1138 0336 12       		.uleb128 0x12
+ 1139 0337 01       		.uleb128 0x1
+ 1140 0338 51       		.byte	0x51
+ 1141 0339 05       		.uleb128 0x5
+ 1142 033a 03       		.byte	0x3
+ 1143 033b 04000000 		.4byte	.LC1
+ 1144 033f 12       		.uleb128 0x12
+ 1145 0340 01       		.uleb128 0x1
+ 1146 0341 52       		.byte	0x52
+ 1147 0342 02       		.uleb128 0x2
+ 1148 0343 76       		.byte	0x76
+ 1149 0344 00       		.sleb128 0
+ 1150 0345 00       		.byte	0
+ 1151 0346 11       		.uleb128 0x11
+ 1152 0347 40000000 		.4byte	.LVL19
+ 1153 034b 4D070000 		.4byte	0x74d
+ 1154 034f 5A030000 		.4byte	0x35a
+ 1155 0353 12       		.uleb128 0x12
+ 1156 0354 01       		.uleb128 0x1
+ 1157 0355 50       		.byte	0x50
+ 1158 0356 02       		.uleb128 0x2
+ 1159 0357 75       		.byte	0x75
+ 1160 0358 00       		.sleb128 0
+ 1161 0359 00       		.byte	0
+ 1162 035a 13       		.uleb128 0x13
+ 1163 035b 46000000 		.4byte	.LVL20
+ 1164 035f 4D070000 		.4byte	0x74d
+ 1165 0363 12       		.uleb128 0x12
+ 1166 0364 01       		.uleb128 0x1
+ 1167 0365 50       		.byte	0x50
+ 1168 0366 05       		.uleb128 0x5
+ 1169 0367 03       		.byte	0x3
+ 1170 0368 00000000 		.4byte	.LC0
+ 1171 036c 00       		.byte	0
+ 1172 036d 00       		.byte	0
+ 1173 036e 16       		.uleb128 0x16
+ 1174 036f 6A000000 		.4byte	.LASF78
+ 1175 0373 01       		.byte	0x1
+ 1176 0374 77       		.byte	0x77
+ 1177 0375 81000000 		.4byte	0x81
+ 1178 0379 00000000 		.4byte	.LFB66
+ 1179 037d C8020000 		.4byte	.LFE66-.LFB66
+ 1180 0381 01       		.uleb128 0x1
+ 1181 0382 9C       		.byte	0x9c
+ 1182 0383 A9060000 		.4byte	0x6a9
+ 1183 0387 0F       		.uleb128 0xf
+ 1184 0388 36010000 		.4byte	.LASF44
+ 1185 038c 01       		.byte	0x1
+ 1186 038d 8D       		.byte	0x8d
+ 1187 038e 25000000 		.4byte	0x25
+ 1188 0392 E5000000 		.4byte	.LLST6
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 28
+
+
+ 1189 0396 17       		.uleb128 0x17
+ 1190 0397 636800   		.ascii	"ch\000"
+ 1191 039a 01       		.byte	0x1
+ 1192 039b 8F       		.byte	0x8f
+ 1193 039c A9000000 		.4byte	0xa9
+ 1194 03a0 13010000 		.4byte	.LLST7
+ 1195 03a4 0F       		.uleb128 0xf
+ 1196 03a5 54020000 		.4byte	.LASF46
+ 1197 03a9 01       		.byte	0x1
+ 1198 03aa 90       		.byte	0x90
+ 1199 03ab A9000000 		.4byte	0xa9
+ 1200 03af 3D010000 		.4byte	.LLST8
+ 1201 03b3 0F       		.uleb128 0xf
+ 1202 03b4 41040000 		.4byte	.LASF47
+ 1203 03b8 01       		.byte	0x1
+ 1204 03b9 91       		.byte	0x91
+ 1205 03ba 81000000 		.4byte	0x81
+ 1206 03be 69010000 		.4byte	.LLST9
+ 1207 03c2 18       		.uleb128 0x18
+ 1208 03c3 74000000 		.4byte	.LBB2
+ 1209 03c7 BA010000 		.4byte	.LBE2-.LBB2
+ 1210 03cb 9E050000 		.4byte	0x59e
+ 1211 03cf 17       		.uleb128 0x17
+ 1212 03d0 73756D00 		.ascii	"sum\000"
+ 1213 03d4 01       		.byte	0x1
+ 1214 03d5 AF       		.byte	0xaf
+ 1215 03d6 A9000000 		.4byte	0xa9
+ 1216 03da 9F010000 		.4byte	.LLST10
+ 1217 03de 0F       		.uleb128 0xf
+ 1218 03df 39040000 		.4byte	.LASF48
+ 1219 03e3 01       		.byte	0x1
+ 1220 03e4 B4       		.byte	0xb4
+ 1221 03e5 A9000000 		.4byte	0xa9
+ 1222 03e9 B2010000 		.4byte	.LLST11
+ 1223 03ed 18       		.uleb128 0x18
+ 1224 03ee 8E000000 		.4byte	.LBB3
+ 1225 03f2 0E000000 		.4byte	.LBE3-.LBB3
+ 1226 03f6 11040000 		.4byte	0x411
+ 1227 03fa 17       		.uleb128 0x17
+ 1228 03fb 6900     		.ascii	"i\000"
+ 1229 03fd 01       		.byte	0x1
+ 1230 03fe B0       		.byte	0xb0
+ 1231 03ff 81000000 		.4byte	0x81
+ 1232 0403 F7010000 		.4byte	.LLST12
+ 1233 0407 10       		.uleb128 0x10
+ 1234 0408 92000000 		.4byte	.LVL41
+ 1235 040c 63070000 		.4byte	0x763
+ 1236 0410 00       		.byte	0
+ 1237 0411 11       		.uleb128 0x11
+ 1238 0412 7A000000 		.4byte	.LVL37
+ 1239 0416 6E070000 		.4byte	0x76e
+ 1240 041a 25040000 		.4byte	0x425
+ 1241 041e 12       		.uleb128 0x12
+ 1242 041f 01       		.uleb128 0x1
+ 1243 0420 50       		.byte	0x50
+ 1244 0421 02       		.uleb128 0x2
+ 1245 0422 76       		.byte	0x76
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 29
+
+
+ 1246 0423 00       		.sleb128 0
+ 1247 0424 00       		.byte	0
+ 1248 0425 10       		.uleb128 0x10
+ 1249 0426 7E000000 		.4byte	.LVL38
+ 1250 042a 79070000 		.4byte	0x779
+ 1251 042e 11       		.uleb128 0x11
+ 1252 042f 84000000 		.4byte	.LVL39
+ 1253 0433 84070000 		.4byte	0x784
+ 1254 0437 41040000 		.4byte	0x441
+ 1255 043b 12       		.uleb128 0x12
+ 1256 043c 01       		.uleb128 0x1
+ 1257 043d 50       		.byte	0x50
+ 1258 043e 01       		.uleb128 0x1
+ 1259 043f 31       		.byte	0x31
+ 1260 0440 00       		.byte	0
+ 1261 0441 11       		.uleb128 0x11
+ 1262 0442 AA000000 		.4byte	.LVL46
+ 1263 0446 8F070000 		.4byte	0x78f
+ 1264 044a 72040000 		.4byte	0x472
+ 1265 044e 12       		.uleb128 0x12
+ 1266 044f 01       		.uleb128 0x1
+ 1267 0450 50       		.byte	0x50
+ 1268 0451 1F       		.uleb128 0x1f
+ 1269 0452 74       		.byte	0x74
+ 1270 0453 00       		.sleb128 0
+ 1271 0454 F7       		.byte	0xf7
+ 1272 0455 33       		.uleb128 0x33
+ 1273 0456 F7       		.byte	0xf7
+ 1274 0457 2C       		.uleb128 0x2c
+ 1275 0458 F4       		.byte	0xf4
+ 1276 0459 2C       		.uleb128 0x2c
+ 1277 045a 08       		.byte	0x8
+ 1278 045b CDCCCCCC 		.8byte	0xcccccccd
+ 1278      00000000 
+ 1279 0463 1E       		.byte	0x1e
+ 1280 0464 08       		.byte	0x8
+ 1281 0465 20       		.byte	0x20
+ 1282 0466 F7       		.byte	0xf7
+ 1283 0467 2C       		.uleb128 0x2c
+ 1284 0468 25       		.byte	0x25
+ 1285 0469 F7       		.byte	0xf7
+ 1286 046a 33       		.uleb128 0x33
+ 1287 046b 09       		.byte	0x9
+ 1288 046c F2       		.byte	0xf2
+ 1289 046d 24       		.byte	0x24
+ 1290 046e 09       		.byte	0x9
+ 1291 046f F4       		.byte	0xf4
+ 1292 0470 26       		.byte	0x26
+ 1293 0471 00       		.byte	0
+ 1294 0472 11       		.uleb128 0x11
+ 1295 0473 CC000000 		.4byte	.LVL49
+ 1296 0477 9A070000 		.4byte	0x79a
+ 1297 047b 87040000 		.4byte	0x487
+ 1298 047f 12       		.uleb128 0x12
+ 1299 0480 01       		.uleb128 0x1
+ 1300 0481 50       		.byte	0x50
+ 1301 0482 03       		.uleb128 0x3
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 30
+
+
+ 1302 0483 F5       		.byte	0xf5
+ 1303 0484 04       		.uleb128 0x4
+ 1304 0485 25       		.uleb128 0x25
+ 1305 0486 00       		.byte	0
+ 1306 0487 11       		.uleb128 0x11
+ 1307 0488 E8000000 		.4byte	.LVL52
+ 1308 048c 9A070000 		.4byte	0x79a
+ 1309 0490 9C040000 		.4byte	0x49c
+ 1310 0494 12       		.uleb128 0x12
+ 1311 0495 01       		.uleb128 0x1
+ 1312 0496 50       		.byte	0x50
+ 1313 0497 03       		.uleb128 0x3
+ 1314 0498 F5       		.byte	0xf5
+ 1315 0499 04       		.uleb128 0x4
+ 1316 049a 25       		.uleb128 0x25
+ 1317 049b 00       		.byte	0
+ 1318 049c 11       		.uleb128 0x11
+ 1319 049d 0E010000 		.4byte	.LVL56
+ 1320 04a1 9A070000 		.4byte	0x79a
+ 1321 04a5 B1040000 		.4byte	0x4b1
+ 1322 04a9 12       		.uleb128 0x12
+ 1323 04aa 01       		.uleb128 0x1
+ 1324 04ab 50       		.byte	0x50
+ 1325 04ac 03       		.uleb128 0x3
+ 1326 04ad F5       		.byte	0xf5
+ 1327 04ae 04       		.uleb128 0x4
+ 1328 04af 25       		.uleb128 0x25
+ 1329 04b0 00       		.byte	0
+ 1330 04b1 11       		.uleb128 0x11
+ 1331 04b2 36010000 		.4byte	.LVL60
+ 1332 04b6 9A070000 		.4byte	0x79a
+ 1333 04ba C6040000 		.4byte	0x4c6
+ 1334 04be 12       		.uleb128 0x12
+ 1335 04bf 01       		.uleb128 0x1
+ 1336 04c0 50       		.byte	0x50
+ 1337 04c1 03       		.uleb128 0x3
+ 1338 04c2 F5       		.byte	0xf5
+ 1339 04c3 04       		.uleb128 0x4
+ 1340 04c4 25       		.uleb128 0x25
+ 1341 04c5 00       		.byte	0
+ 1342 04c6 11       		.uleb128 0x11
+ 1343 04c7 E4010000 		.4byte	.LVL77
+ 1344 04cb 7E020000 		.4byte	0x27e
+ 1345 04cf F6040000 		.4byte	0x4f6
+ 1346 04d3 12       		.uleb128 0x12
+ 1347 04d4 01       		.uleb128 0x1
+ 1348 04d5 50       		.byte	0x50
+ 1349 04d6 05       		.uleb128 0x5
+ 1350 04d7 03       		.byte	0x3
+ 1351 04d8 4C000000 		.4byte	.LC4
+ 1352 04dc 12       		.uleb128 0x12
+ 1353 04dd 01       		.uleb128 0x1
+ 1354 04de 51       		.byte	0x51
+ 1355 04df 02       		.uleb128 0x2
+ 1356 04e0 74       		.byte	0x74
+ 1357 04e1 00       		.sleb128 0
+ 1358 04e2 12       		.uleb128 0x12
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 31
+
+
+ 1359 04e3 01       		.uleb128 0x1
+ 1360 04e4 52       		.byte	0x52
+ 1361 04e5 02       		.uleb128 0x2
+ 1362 04e6 76       		.byte	0x76
+ 1363 04e7 00       		.sleb128 0
+ 1364 04e8 12       		.uleb128 0x12
+ 1365 04e9 01       		.uleb128 0x1
+ 1366 04ea 53       		.byte	0x53
+ 1367 04eb 03       		.uleb128 0x3
+ 1368 04ec F5       		.byte	0xf5
+ 1369 04ed 05       		.uleb128 0x5
+ 1370 04ee 25       		.uleb128 0x25
+ 1371 04ef 12       		.uleb128 0x12
+ 1372 04f0 02       		.uleb128 0x2
+ 1373 04f1 7D       		.byte	0x7d
+ 1374 04f2 00       		.sleb128 0
+ 1375 04f3 01       		.uleb128 0x1
+ 1376 04f4 31       		.byte	0x31
+ 1377 04f5 00       		.byte	0
+ 1378 04f6 11       		.uleb128 0x11
+ 1379 04f7 F8010000 		.4byte	.LVL79
+ 1380 04fb 58070000 		.4byte	0x758
+ 1381 04ff 13050000 		.4byte	0x513
+ 1382 0503 12       		.uleb128 0x12
+ 1383 0504 01       		.uleb128 0x1
+ 1384 0505 50       		.byte	0x50
+ 1385 0506 02       		.uleb128 0x2
+ 1386 0507 74       		.byte	0x74
+ 1387 0508 00       		.sleb128 0
+ 1388 0509 12       		.uleb128 0x12
+ 1389 050a 01       		.uleb128 0x1
+ 1390 050b 51       		.byte	0x51
+ 1391 050c 05       		.uleb128 0x5
+ 1392 050d 03       		.byte	0x3
+ 1393 050e 6C000000 		.4byte	.LC5
+ 1394 0512 00       		.byte	0
+ 1395 0513 11       		.uleb128 0x11
+ 1396 0514 FE010000 		.4byte	.LVL80
+ 1397 0518 4D070000 		.4byte	0x74d
+ 1398 051c 27050000 		.4byte	0x527
+ 1399 0520 12       		.uleb128 0x12
+ 1400 0521 01       		.uleb128 0x1
+ 1401 0522 50       		.byte	0x50
+ 1402 0523 02       		.uleb128 0x2
+ 1403 0524 74       		.byte	0x74
+ 1404 0525 00       		.sleb128 0
+ 1405 0526 00       		.byte	0
+ 1406 0527 11       		.uleb128 0x11
+ 1407 0528 06020000 		.4byte	.LVL81
+ 1408 052c 4D070000 		.4byte	0x74d
+ 1409 0530 3B050000 		.4byte	0x53b
+ 1410 0534 12       		.uleb128 0x12
+ 1411 0535 01       		.uleb128 0x1
+ 1412 0536 50       		.byte	0x50
+ 1413 0537 02       		.uleb128 0x2
+ 1414 0538 75       		.byte	0x75
+ 1415 0539 00       		.sleb128 0
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 32
+
+
+ 1416 053a 00       		.byte	0
+ 1417 053b 11       		.uleb128 0x11
+ 1418 053c 18020000 		.4byte	.LVL83
+ 1419 0540 58070000 		.4byte	0x758
+ 1420 0544 58050000 		.4byte	0x558
+ 1421 0548 12       		.uleb128 0x12
+ 1422 0549 01       		.uleb128 0x1
+ 1423 054a 50       		.byte	0x50
+ 1424 054b 02       		.uleb128 0x2
+ 1425 054c 74       		.byte	0x74
+ 1426 054d 00       		.sleb128 0
+ 1427 054e 12       		.uleb128 0x12
+ 1428 054f 01       		.uleb128 0x1
+ 1429 0550 51       		.byte	0x51
+ 1430 0551 05       		.uleb128 0x5
+ 1431 0552 03       		.byte	0x3
+ 1432 0553 88000000 		.4byte	.LC6
+ 1433 0557 00       		.byte	0
+ 1434 0558 11       		.uleb128 0x11
+ 1435 0559 1E020000 		.4byte	.LVL84
+ 1436 055d 4D070000 		.4byte	0x74d
+ 1437 0561 6C050000 		.4byte	0x56c
+ 1438 0565 12       		.uleb128 0x12
+ 1439 0566 01       		.uleb128 0x1
+ 1440 0567 50       		.byte	0x50
+ 1441 0568 02       		.uleb128 0x2
+ 1442 0569 74       		.byte	0x74
+ 1443 056a 00       		.sleb128 0
+ 1444 056b 00       		.byte	0
+ 1445 056c 11       		.uleb128 0x11
+ 1446 056d 24020000 		.4byte	.LVL85
+ 1447 0571 4D070000 		.4byte	0x74d
+ 1448 0575 80050000 		.4byte	0x580
+ 1449 0579 12       		.uleb128 0x12
+ 1450 057a 01       		.uleb128 0x1
+ 1451 057b 50       		.byte	0x50
+ 1452 057c 02       		.uleb128 0x2
+ 1453 057d 75       		.byte	0x75
+ 1454 057e 00       		.sleb128 0
+ 1455 057f 00       		.byte	0
+ 1456 0580 11       		.uleb128 0x11
+ 1457 0581 2A020000 		.4byte	.LVL86
+ 1458 0585 A6070000 		.4byte	0x7a6
+ 1459 0589 94050000 		.4byte	0x594
+ 1460 058d 12       		.uleb128 0x12
+ 1461 058e 01       		.uleb128 0x1
+ 1462 058f 50       		.byte	0x50
+ 1463 0590 02       		.uleb128 0x2
+ 1464 0591 08       		.byte	0x8
+ 1465 0592 64       		.byte	0x64
+ 1466 0593 00       		.byte	0
+ 1467 0594 10       		.uleb128 0x10
+ 1468 0595 2E020000 		.4byte	.LVL87
+ 1469 0599 B1070000 		.4byte	0x7b1
+ 1470 059d 00       		.byte	0
+ 1471 059e 10       		.uleb128 0x10
+ 1472 059f 0C000000 		.4byte	.LVL22
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 33
+
+
+ 1473 05a3 BC070000 		.4byte	0x7bc
+ 1474 05a7 10       		.uleb128 0x10
+ 1475 05a8 10000000 		.4byte	.LVL23
+ 1476 05ac C7070000 		.4byte	0x7c7
+ 1477 05b0 10       		.uleb128 0x10
+ 1478 05b1 14000000 		.4byte	.LVL24
+ 1479 05b5 D2070000 		.4byte	0x7d2
+ 1480 05b9 10       		.uleb128 0x10
+ 1481 05ba 18000000 		.4byte	.LVL25
+ 1482 05be DD070000 		.4byte	0x7dd
+ 1483 05c2 10       		.uleb128 0x10
+ 1484 05c3 1C000000 		.4byte	.LVL26
+ 1485 05c7 DD070000 		.4byte	0x7dd
+ 1486 05cb 10       		.uleb128 0x10
+ 1487 05cc 20000000 		.4byte	.LVL27
+ 1488 05d0 E8070000 		.4byte	0x7e8
+ 1489 05d4 11       		.uleb128 0x11
+ 1490 05d5 26000000 		.4byte	.LVL28
+ 1491 05d9 F3070000 		.4byte	0x7f3
+ 1492 05dd EB050000 		.4byte	0x5eb
+ 1493 05e1 12       		.uleb128 0x12
+ 1494 05e2 01       		.uleb128 0x1
+ 1495 05e3 50       		.byte	0x50
+ 1496 05e4 05       		.uleb128 0x5
+ 1497 05e5 03       		.byte	0x3
+ 1498 05e6 00000000 		.4byte	Timer_Int_Handler
+ 1499 05ea 00       		.byte	0
+ 1500 05eb 11       		.uleb128 0x11
+ 1501 05ec 2E000000 		.4byte	.LVL29
+ 1502 05f0 FE070000 		.4byte	0x7fe
+ 1503 05f4 07060000 		.4byte	0x607
+ 1504 05f8 12       		.uleb128 0x12
+ 1505 05f9 01       		.uleb128 0x1
+ 1506 05fa 50       		.byte	0x50
+ 1507 05fb 01       		.uleb128 0x1
+ 1508 05fc 40       		.byte	0x40
+ 1509 05fd 12       		.uleb128 0x12
+ 1510 05fe 01       		.uleb128 0x1
+ 1511 05ff 51       		.byte	0x51
+ 1512 0600 05       		.uleb128 0x5
+ 1513 0601 03       		.byte	0x3
+ 1514 0602 00000000 		.4byte	ISR_CAN
+ 1515 0606 00       		.byte	0
+ 1516 0607 11       		.uleb128 0x11
+ 1517 0608 40000000 		.4byte	.LVL30
+ 1518 060c 7E020000 		.4byte	0x27e
+ 1519 0610 33060000 		.4byte	0x633
+ 1520 0614 12       		.uleb128 0x12
+ 1521 0615 01       		.uleb128 0x1
+ 1522 0616 50       		.byte	0x50
+ 1523 0617 05       		.uleb128 0x5
+ 1524 0618 03       		.byte	0x3
+ 1525 0619 24000000 		.4byte	.LC2
+ 1526 061d 12       		.uleb128 0x12
+ 1527 061e 01       		.uleb128 0x1
+ 1528 061f 51       		.byte	0x51
+ 1529 0620 05       		.uleb128 0x5
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 34
+
+
+ 1530 0621 03       		.byte	0x3
+ 1531 0622 00000000 		.4byte	outputstring
+ 1532 0626 12       		.uleb128 0x12
+ 1533 0627 01       		.uleb128 0x1
+ 1534 0628 52       		.byte	0x52
+ 1535 0629 01       		.uleb128 0x1
+ 1536 062a 31       		.byte	0x31
+ 1537 062b 12       		.uleb128 0x12
+ 1538 062c 02       		.uleb128 0x2
+ 1539 062d 7D       		.byte	0x7d
+ 1540 062e 00       		.sleb128 0
+ 1541 062f 02       		.uleb128 0x2
+ 1542 0630 77       		.byte	0x77
+ 1543 0631 00       		.sleb128 0
+ 1544 0632 00       		.byte	0
+ 1545 0633 11       		.uleb128 0x11
+ 1546 0634 54000000 		.4byte	.LVL32
+ 1547 0638 58070000 		.4byte	0x758
+ 1548 063c 56060000 		.4byte	0x656
+ 1549 0640 12       		.uleb128 0x12
+ 1550 0641 01       		.uleb128 0x1
+ 1551 0642 50       		.byte	0x50
+ 1552 0643 02       		.uleb128 0x2
+ 1553 0644 74       		.byte	0x74
+ 1554 0645 00       		.sleb128 0
+ 1555 0646 12       		.uleb128 0x12
+ 1556 0647 01       		.uleb128 0x1
+ 1557 0648 51       		.byte	0x51
+ 1558 0649 05       		.uleb128 0x5
+ 1559 064a 03       		.byte	0x3
+ 1560 064b 34000000 		.4byte	.LC3
+ 1561 064f 12       		.uleb128 0x12
+ 1562 0650 01       		.uleb128 0x1
+ 1563 0651 52       		.byte	0x52
+ 1564 0652 02       		.uleb128 0x2
+ 1565 0653 7A       		.byte	0x7a
+ 1566 0654 00       		.sleb128 0
+ 1567 0655 00       		.byte	0
+ 1568 0656 11       		.uleb128 0x11
+ 1569 0657 5A000000 		.4byte	.LVL33
+ 1570 065b 4D070000 		.4byte	0x74d
+ 1571 065f 6A060000 		.4byte	0x66a
+ 1572 0663 12       		.uleb128 0x12
+ 1573 0664 01       		.uleb128 0x1
+ 1574 0665 50       		.byte	0x50
+ 1575 0666 02       		.uleb128 0x2
+ 1576 0667 74       		.byte	0x74
+ 1577 0668 00       		.sleb128 0
+ 1578 0669 00       		.byte	0
+ 1579 066a 11       		.uleb128 0x11
+ 1580 066b 60000000 		.4byte	.LVL34
+ 1581 066f 4D070000 		.4byte	0x74d
+ 1582 0673 81060000 		.4byte	0x681
+ 1583 0677 12       		.uleb128 0x12
+ 1584 0678 01       		.uleb128 0x1
+ 1585 0679 50       		.byte	0x50
+ 1586 067a 05       		.uleb128 0x5
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 35
+
+
+ 1587 067b 03       		.byte	0x3
+ 1588 067c 00000000 		.4byte	.LC0
+ 1589 0680 00       		.byte	0
+ 1590 0681 13       		.uleb128 0x13
+ 1591 0682 4E020000 		.4byte	.LVL91
+ 1592 0686 7E020000 		.4byte	0x27e
+ 1593 068a 12       		.uleb128 0x12
+ 1594 068b 01       		.uleb128 0x1
+ 1595 068c 50       		.byte	0x50
+ 1596 068d 05       		.uleb128 0x5
+ 1597 068e 03       		.byte	0x3
+ 1598 068f A4000000 		.4byte	.LC7
+ 1599 0693 12       		.uleb128 0x12
+ 1600 0694 01       		.uleb128 0x1
+ 1601 0695 51       		.byte	0x51
+ 1602 0696 05       		.uleb128 0x5
+ 1603 0697 03       		.byte	0x3
+ 1604 0698 00000000 		.4byte	outputstring
+ 1605 069c 12       		.uleb128 0x12
+ 1606 069d 01       		.uleb128 0x1
+ 1607 069e 52       		.byte	0x52
+ 1608 069f 01       		.uleb128 0x1
+ 1609 06a0 31       		.byte	0x31
+ 1610 06a1 12       		.uleb128 0x12
+ 1611 06a2 02       		.uleb128 0x2
+ 1612 06a3 7D       		.byte	0x7d
+ 1613 06a4 00       		.sleb128 0
+ 1614 06a5 01       		.uleb128 0x1
+ 1615 06a6 30       		.byte	0x30
+ 1616 06a7 00       		.byte	0
+ 1617 06a8 00       		.byte	0
+ 1618 06a9 19       		.uleb128 0x19
+ 1619 06aa 90030000 		.4byte	.LASF49
+ 1620 06ae 06       		.byte	0x6
+ 1621 06af 2A06     		.2byte	0x62a
+ 1622 06b1 B5060000 		.4byte	0x6b5
+ 1623 06b5 06       		.uleb128 0x6
+ 1624 06b6 93000000 		.4byte	0x93
+ 1625 06ba 1A       		.uleb128 0x1a
+ 1626 06bb 16030000 		.4byte	.LASF50
+ 1627 06bf 01       		.byte	0x1
+ 1628 06c0 29       		.byte	0x29
+ 1629 06c1 9E000000 		.4byte	0x9e
+ 1630 06c5 05       		.uleb128 0x5
+ 1631 06c6 03       		.byte	0x3
+ 1632 06c7 00000000 		.4byte	switchState
+ 1633 06cb 0A       		.uleb128 0xa
+ 1634 06cc BB000000 		.4byte	0xbb
+ 1635 06d0 DB060000 		.4byte	0x6db
+ 1636 06d4 0B       		.uleb128 0xb
+ 1637 06d5 DA000000 		.4byte	0xda
+ 1638 06d9 31       		.byte	0x31
+ 1639 06da 00       		.byte	0
+ 1640 06db 1A       		.uleb128 0x1a
+ 1641 06dc 42000000 		.4byte	.LASF43
+ 1642 06e0 01       		.byte	0x1
+ 1643 06e1 2B       		.byte	0x2b
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 36
+
+
+ 1644 06e2 CB060000 		.4byte	0x6cb
+ 1645 06e6 05       		.uleb128 0x5
+ 1646 06e7 03       		.byte	0x3
+ 1647 06e8 00000000 		.4byte	outputstring
+ 1648 06ec 1A       		.uleb128 0x1a
+ 1649 06ed 8E000000 		.4byte	.LASF51
+ 1650 06f1 01       		.byte	0x1
+ 1651 06f2 2D       		.byte	0x2d
+ 1652 06f3 25000000 		.4byte	0x25
+ 1653 06f7 05       		.uleb128 0x5
+ 1654 06f8 03       		.byte	0x3
+ 1655 06f9 00000000 		.4byte	max_temp
+ 1656 06fd 1A       		.uleb128 0x1a
+ 1657 06fe B9010000 		.4byte	.LASF52
+ 1658 0702 01       		.byte	0x1
+ 1659 0703 2E       		.byte	0x2e
+ 1660 0704 25000000 		.4byte	0x25
+ 1661 0708 05       		.uleb128 0x5
+ 1662 0709 03       		.byte	0x3
+ 1663 070a 00000000 		.4byte	min_temp
+ 1664 070e 1A       		.uleb128 0x1a
+ 1665 070f 9E010000 		.4byte	.LASF53
+ 1666 0713 01       		.byte	0x1
+ 1667 0714 2F       		.byte	0x2f
+ 1668 0715 25000000 		.4byte	0x25
+ 1669 0719 05       		.uleb128 0x5
+ 1670 071a 03       		.byte	0x3
+ 1671 071b 00000000 		.4byte	avg_temp
+ 1672 071f 1A       		.uleb128 0x1a
+ 1673 0720 84030000 		.4byte	.LASF54
+ 1674 0724 01       		.byte	0x1
+ 1675 0725 31       		.byte	0x31
+ 1676 0726 25000000 		.4byte	0x25
+ 1677 072a 05       		.uleb128 0x5
+ 1678 072b 03       		.byte	0x3
+ 1679 072c 00000000 		.4byte	Temperature
+ 1680 0730 1A       		.uleb128 0x1a
+ 1681 0731 62000000 		.4byte	.LASF55
+ 1682 0735 01       		.byte	0x1
+ 1683 0736 34       		.byte	0x34
+ 1684 0737 CE000000 		.4byte	0xce
+ 1685 073b 05       		.uleb128 0x5
+ 1686 073c 03       		.byte	0x3
+ 1687 073d 00000000 		.4byte	isrFlag
+ 1688 0741 1B       		.uleb128 0x1b
+ 1689 0742 40030000 		.4byte	.LASF56
+ 1690 0746 40030000 		.4byte	.LASF56
+ 1691 074a 05       		.byte	0x5
+ 1692 074b 2001     		.2byte	0x120
+ 1693 074d 1C       		.uleb128 0x1c
+ 1694 074e 98020000 		.4byte	.LASF57
+ 1695 0752 98020000 		.4byte	.LASF57
+ 1696 0756 07       		.byte	0x7
+ 1697 0757 8B       		.byte	0x8b
+ 1698 0758 1C       		.uleb128 0x1c
+ 1699 0759 66010000 		.4byte	.LASF58
+ 1700 075d 66010000 		.4byte	.LASF58
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 37
+
+
+ 1701 0761 08       		.byte	0x8
+ 1702 0762 E7       		.byte	0xe7
+ 1703 0763 1C       		.uleb128 0x1c
+ 1704 0764 E2000000 		.4byte	.LASF59
+ 1705 0768 E2000000 		.4byte	.LASF59
+ 1706 076c 09       		.byte	0x9
+ 1707 076d 3B       		.byte	0x3b
+ 1708 076e 1C       		.uleb128 0x1c
+ 1709 076f 74030000 		.4byte	.LASF60
+ 1710 0773 74030000 		.4byte	.LASF60
+ 1711 0777 0A       		.byte	0xa
+ 1712 0778 27       		.byte	0x27
+ 1713 0779 1C       		.uleb128 0x1c
+ 1714 077a 03020000 		.4byte	.LASF61
+ 1715 077e 03020000 		.4byte	.LASF61
+ 1716 0782 09       		.byte	0x9
+ 1717 0783 D1       		.byte	0xd1
+ 1718 0784 1C       		.uleb128 0x1c
+ 1719 0785 2F020000 		.4byte	.LASF62
+ 1720 0789 2F020000 		.4byte	.LASF62
+ 1721 078d 09       		.byte	0x9
+ 1722 078e 39       		.byte	0x39
+ 1723 078f 1C       		.uleb128 0x1c
+ 1724 0790 97000000 		.4byte	.LASF63
+ 1725 0794 97000000 		.4byte	.LASF63
+ 1726 0798 09       		.byte	0x9
+ 1727 0799 41       		.byte	0x41
+ 1728 079a 1B       		.uleb128 0x1b
+ 1729 079b 00000000 		.4byte	.LASF64
+ 1730 079f 00000000 		.4byte	.LASF64
+ 1731 07a3 0B       		.byte	0xb
+ 1732 07a4 8401     		.2byte	0x184
+ 1733 07a6 1C       		.uleb128 0x1c
+ 1734 07a7 2B040000 		.4byte	.LASF65
+ 1735 07ab 2B040000 		.4byte	.LASF65
+ 1736 07af 0C       		.byte	0xc
+ 1737 07b0 77       		.byte	0x77
+ 1738 07b1 1C       		.uleb128 0x1c
+ 1739 07b2 7B020000 		.4byte	.LASF66
+ 1740 07b6 7B020000 		.4byte	.LASF66
+ 1741 07ba 09       		.byte	0x9
+ 1742 07bb D2       		.byte	0xd2
+ 1743 07bc 1C       		.uleb128 0x1c
+ 1744 07bd 05000000 		.4byte	.LASF67
+ 1745 07c1 05000000 		.4byte	.LASF67
+ 1746 07c5 09       		.byte	0x9
+ 1747 07c6 34       		.byte	0x34
+ 1748 07c7 1C       		.uleb128 0x1c
+ 1749 07c8 FE000000 		.4byte	.LASF68
+ 1750 07cc FE000000 		.4byte	.LASF68
+ 1751 07d0 07       		.byte	0x7
+ 1752 07d1 54       		.byte	0x54
+ 1753 07d2 1C       		.uleb128 0x1c
+ 1754 07d3 B0000000 		.4byte	.LASF69
+ 1755 07d7 B0000000 		.4byte	.LASF69
+ 1756 07db 05       		.byte	0x5
+ 1757 07dc C5       		.byte	0xc5
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 38
+
+
+ 1758 07dd 1C       		.uleb128 0x1c
+ 1759 07de D5010000 		.4byte	.LASF70
+ 1760 07e2 D5010000 		.4byte	.LASF70
+ 1761 07e6 0A       		.byte	0xa
+ 1762 07e7 25       		.byte	0x25
+ 1763 07e8 1C       		.uleb128 0x1c
+ 1764 07e9 34030000 		.4byte	.LASF71
+ 1765 07ed 34030000 		.4byte	.LASF71
+ 1766 07f1 0D       		.byte	0xd
+ 1767 07f2 5A       		.byte	0x5a
+ 1768 07f3 1C       		.uleb128 0x1c
+ 1769 07f4 5D020000 		.4byte	.LASF72
+ 1770 07f8 5D020000 		.4byte	.LASF72
+ 1771 07fc 0E       		.byte	0xe
+ 1772 07fd 18       		.byte	0x18
+ 1773 07fe 1C       		.uleb128 0x1c
+ 1774 07ff 65030000 		.4byte	.LASF73
+ 1775 0803 65030000 		.4byte	.LASF73
+ 1776 0807 0C       		.byte	0xc
+ 1777 0808 89       		.byte	0x89
+ 1778 0809 00       		.byte	0
+ 1779              		.section	.debug_abbrev,"",%progbits
+ 1780              	.Ldebug_abbrev0:
+ 1781 0000 01       		.uleb128 0x1
+ 1782 0001 11       		.uleb128 0x11
+ 1783 0002 01       		.byte	0x1
+ 1784 0003 25       		.uleb128 0x25
+ 1785 0004 0E       		.uleb128 0xe
+ 1786 0005 13       		.uleb128 0x13
+ 1787 0006 0B       		.uleb128 0xb
+ 1788 0007 03       		.uleb128 0x3
+ 1789 0008 0E       		.uleb128 0xe
+ 1790 0009 1B       		.uleb128 0x1b
+ 1791 000a 0E       		.uleb128 0xe
+ 1792 000b 55       		.uleb128 0x55
+ 1793 000c 17       		.uleb128 0x17
+ 1794 000d 11       		.uleb128 0x11
+ 1795 000e 01       		.uleb128 0x1
+ 1796 000f 10       		.uleb128 0x10
+ 1797 0010 17       		.uleb128 0x17
+ 1798 0011 00       		.byte	0
+ 1799 0012 00       		.byte	0
+ 1800 0013 02       		.uleb128 0x2
+ 1801 0014 24       		.uleb128 0x24
+ 1802 0015 00       		.byte	0
+ 1803 0016 0B       		.uleb128 0xb
+ 1804 0017 0B       		.uleb128 0xb
+ 1805 0018 3E       		.uleb128 0x3e
+ 1806 0019 0B       		.uleb128 0xb
+ 1807 001a 03       		.uleb128 0x3
+ 1808 001b 0E       		.uleb128 0xe
+ 1809 001c 00       		.byte	0
+ 1810 001d 00       		.byte	0
+ 1811 001e 03       		.uleb128 0x3
+ 1812 001f 16       		.uleb128 0x16
+ 1813 0020 00       		.byte	0
+ 1814 0021 03       		.uleb128 0x3
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 39
+
+
+ 1815 0022 0E       		.uleb128 0xe
+ 1816 0023 3A       		.uleb128 0x3a
+ 1817 0024 0B       		.uleb128 0xb
+ 1818 0025 3B       		.uleb128 0x3b
+ 1819 0026 0B       		.uleb128 0xb
+ 1820 0027 49       		.uleb128 0x49
+ 1821 0028 13       		.uleb128 0x13
+ 1822 0029 00       		.byte	0
+ 1823 002a 00       		.byte	0
+ 1824 002b 04       		.uleb128 0x4
+ 1825 002c 24       		.uleb128 0x24
+ 1826 002d 00       		.byte	0
+ 1827 002e 0B       		.uleb128 0xb
+ 1828 002f 0B       		.uleb128 0xb
+ 1829 0030 3E       		.uleb128 0x3e
+ 1830 0031 0B       		.uleb128 0xb
+ 1831 0032 03       		.uleb128 0x3
+ 1832 0033 08       		.uleb128 0x8
+ 1833 0034 00       		.byte	0
+ 1834 0035 00       		.byte	0
+ 1835 0036 05       		.uleb128 0x5
+ 1836 0037 16       		.uleb128 0x16
+ 1837 0038 00       		.byte	0
+ 1838 0039 03       		.uleb128 0x3
+ 1839 003a 0E       		.uleb128 0xe
+ 1840 003b 3A       		.uleb128 0x3a
+ 1841 003c 0B       		.uleb128 0xb
+ 1842 003d 3B       		.uleb128 0x3b
+ 1843 003e 05       		.uleb128 0x5
+ 1844 003f 49       		.uleb128 0x49
+ 1845 0040 13       		.uleb128 0x13
+ 1846 0041 00       		.byte	0
+ 1847 0042 00       		.byte	0
+ 1848 0043 06       		.uleb128 0x6
+ 1849 0044 35       		.uleb128 0x35
+ 1850 0045 00       		.byte	0
+ 1851 0046 49       		.uleb128 0x49
+ 1852 0047 13       		.uleb128 0x13
+ 1853 0048 00       		.byte	0
+ 1854 0049 00       		.byte	0
+ 1855 004a 07       		.uleb128 0x7
+ 1856 004b 0F       		.uleb128 0xf
+ 1857 004c 00       		.byte	0
+ 1858 004d 0B       		.uleb128 0xb
+ 1859 004e 0B       		.uleb128 0xb
+ 1860 004f 49       		.uleb128 0x49
+ 1861 0050 13       		.uleb128 0x13
+ 1862 0051 00       		.byte	0
+ 1863 0052 00       		.byte	0
+ 1864 0053 08       		.uleb128 0x8
+ 1865 0054 13       		.uleb128 0x13
+ 1866 0055 01       		.byte	0x1
+ 1867 0056 0B       		.uleb128 0xb
+ 1868 0057 0B       		.uleb128 0xb
+ 1869 0058 3A       		.uleb128 0x3a
+ 1870 0059 0B       		.uleb128 0xb
+ 1871 005a 3B       		.uleb128 0x3b
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 40
+
+
+ 1872 005b 0B       		.uleb128 0xb
+ 1873 005c 01       		.uleb128 0x1
+ 1874 005d 13       		.uleb128 0x13
+ 1875 005e 00       		.byte	0
+ 1876 005f 00       		.byte	0
+ 1877 0060 09       		.uleb128 0x9
+ 1878 0061 0D       		.uleb128 0xd
+ 1879 0062 00       		.byte	0
+ 1880 0063 03       		.uleb128 0x3
+ 1881 0064 0E       		.uleb128 0xe
+ 1882 0065 3A       		.uleb128 0x3a
+ 1883 0066 0B       		.uleb128 0xb
+ 1884 0067 3B       		.uleb128 0x3b
+ 1885 0068 0B       		.uleb128 0xb
+ 1886 0069 49       		.uleb128 0x49
+ 1887 006a 13       		.uleb128 0x13
+ 1888 006b 38       		.uleb128 0x38
+ 1889 006c 0B       		.uleb128 0xb
+ 1890 006d 00       		.byte	0
+ 1891 006e 00       		.byte	0
+ 1892 006f 0A       		.uleb128 0xa
+ 1893 0070 01       		.uleb128 0x1
+ 1894 0071 01       		.byte	0x1
+ 1895 0072 49       		.uleb128 0x49
+ 1896 0073 13       		.uleb128 0x13
+ 1897 0074 01       		.uleb128 0x1
+ 1898 0075 13       		.uleb128 0x13
+ 1899 0076 00       		.byte	0
+ 1900 0077 00       		.byte	0
+ 1901 0078 0B       		.uleb128 0xb
+ 1902 0079 21       		.uleb128 0x21
+ 1903 007a 00       		.byte	0
+ 1904 007b 49       		.uleb128 0x49
+ 1905 007c 13       		.uleb128 0x13
+ 1906 007d 2F       		.uleb128 0x2f
+ 1907 007e 0B       		.uleb128 0xb
+ 1908 007f 00       		.byte	0
+ 1909 0080 00       		.byte	0
+ 1910 0081 0C       		.uleb128 0xc
+ 1911 0082 2E       		.uleb128 0x2e
+ 1912 0083 00       		.byte	0
+ 1913 0084 3F       		.uleb128 0x3f
+ 1914 0085 19       		.uleb128 0x19
+ 1915 0086 03       		.uleb128 0x3
+ 1916 0087 0E       		.uleb128 0xe
+ 1917 0088 3A       		.uleb128 0x3a
+ 1918 0089 0B       		.uleb128 0xb
+ 1919 008a 3B       		.uleb128 0x3b
+ 1920 008b 0B       		.uleb128 0xb
+ 1921 008c 27       		.uleb128 0x27
+ 1922 008d 19       		.uleb128 0x19
+ 1923 008e 11       		.uleb128 0x11
+ 1924 008f 01       		.uleb128 0x1
+ 1925 0090 12       		.uleb128 0x12
+ 1926 0091 06       		.uleb128 0x6
+ 1927 0092 40       		.uleb128 0x40
+ 1928 0093 18       		.uleb128 0x18
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 41
+
+
+ 1929 0094 9742     		.uleb128 0x2117
+ 1930 0096 19       		.uleb128 0x19
+ 1931 0097 00       		.byte	0
+ 1932 0098 00       		.byte	0
+ 1933 0099 0D       		.uleb128 0xd
+ 1934 009a 2E       		.uleb128 0x2e
+ 1935 009b 01       		.byte	0x1
+ 1936 009c 3F       		.uleb128 0x3f
+ 1937 009d 19       		.uleb128 0x19
+ 1938 009e 03       		.uleb128 0x3
+ 1939 009f 0E       		.uleb128 0xe
+ 1940 00a0 3A       		.uleb128 0x3a
+ 1941 00a1 0B       		.uleb128 0xb
+ 1942 00a2 3B       		.uleb128 0x3b
+ 1943 00a3 0B       		.uleb128 0xb
+ 1944 00a4 27       		.uleb128 0x27
+ 1945 00a5 19       		.uleb128 0x19
+ 1946 00a6 11       		.uleb128 0x11
+ 1947 00a7 01       		.uleb128 0x1
+ 1948 00a8 12       		.uleb128 0x12
+ 1949 00a9 06       		.uleb128 0x6
+ 1950 00aa 40       		.uleb128 0x40
+ 1951 00ab 18       		.uleb128 0x18
+ 1952 00ac 9642     		.uleb128 0x2116
+ 1953 00ae 19       		.uleb128 0x19
+ 1954 00af 01       		.uleb128 0x1
+ 1955 00b0 13       		.uleb128 0x13
+ 1956 00b1 00       		.byte	0
+ 1957 00b2 00       		.byte	0
+ 1958 00b3 0E       		.uleb128 0xe
+ 1959 00b4 34       		.uleb128 0x34
+ 1960 00b5 00       		.byte	0
+ 1961 00b6 03       		.uleb128 0x3
+ 1962 00b7 0E       		.uleb128 0xe
+ 1963 00b8 3A       		.uleb128 0x3a
+ 1964 00b9 0B       		.uleb128 0xb
+ 1965 00ba 3B       		.uleb128 0x3b
+ 1966 00bb 0B       		.uleb128 0xb
+ 1967 00bc 49       		.uleb128 0x49
+ 1968 00bd 13       		.uleb128 0x13
+ 1969 00be 1C       		.uleb128 0x1c
+ 1970 00bf 0B       		.uleb128 0xb
+ 1971 00c0 00       		.byte	0
+ 1972 00c1 00       		.byte	0
+ 1973 00c2 0F       		.uleb128 0xf
+ 1974 00c3 34       		.uleb128 0x34
+ 1975 00c4 00       		.byte	0
+ 1976 00c5 03       		.uleb128 0x3
+ 1977 00c6 0E       		.uleb128 0xe
+ 1978 00c7 3A       		.uleb128 0x3a
+ 1979 00c8 0B       		.uleb128 0xb
+ 1980 00c9 3B       		.uleb128 0x3b
+ 1981 00ca 0B       		.uleb128 0xb
+ 1982 00cb 49       		.uleb128 0x49
+ 1983 00cc 13       		.uleb128 0x13
+ 1984 00cd 02       		.uleb128 0x2
+ 1985 00ce 17       		.uleb128 0x17
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 42
+
+
+ 1986 00cf 00       		.byte	0
+ 1987 00d0 00       		.byte	0
+ 1988 00d1 10       		.uleb128 0x10
+ 1989 00d2 898201   		.uleb128 0x4109
+ 1990 00d5 00       		.byte	0
+ 1991 00d6 11       		.uleb128 0x11
+ 1992 00d7 01       		.uleb128 0x1
+ 1993 00d8 31       		.uleb128 0x31
+ 1994 00d9 13       		.uleb128 0x13
+ 1995 00da 00       		.byte	0
+ 1996 00db 00       		.byte	0
+ 1997 00dc 11       		.uleb128 0x11
+ 1998 00dd 898201   		.uleb128 0x4109
+ 1999 00e0 01       		.byte	0x1
+ 2000 00e1 11       		.uleb128 0x11
+ 2001 00e2 01       		.uleb128 0x1
+ 2002 00e3 31       		.uleb128 0x31
+ 2003 00e4 13       		.uleb128 0x13
+ 2004 00e5 01       		.uleb128 0x1
+ 2005 00e6 13       		.uleb128 0x13
+ 2006 00e7 00       		.byte	0
+ 2007 00e8 00       		.byte	0
+ 2008 00e9 12       		.uleb128 0x12
+ 2009 00ea 8A8201   		.uleb128 0x410a
+ 2010 00ed 00       		.byte	0
+ 2011 00ee 02       		.uleb128 0x2
+ 2012 00ef 18       		.uleb128 0x18
+ 2013 00f0 9142     		.uleb128 0x2111
+ 2014 00f2 18       		.uleb128 0x18
+ 2015 00f3 00       		.byte	0
+ 2016 00f4 00       		.byte	0
+ 2017 00f5 13       		.uleb128 0x13
+ 2018 00f6 898201   		.uleb128 0x4109
+ 2019 00f9 01       		.byte	0x1
+ 2020 00fa 11       		.uleb128 0x11
+ 2021 00fb 01       		.uleb128 0x1
+ 2022 00fc 31       		.uleb128 0x31
+ 2023 00fd 13       		.uleb128 0x13
+ 2024 00fe 00       		.byte	0
+ 2025 00ff 00       		.byte	0
+ 2026 0100 14       		.uleb128 0x14
+ 2027 0101 05       		.uleb128 0x5
+ 2028 0102 00       		.byte	0
+ 2029 0103 03       		.uleb128 0x3
+ 2030 0104 0E       		.uleb128 0xe
+ 2031 0105 3A       		.uleb128 0x3a
+ 2032 0106 0B       		.uleb128 0xb
+ 2033 0107 3B       		.uleb128 0x3b
+ 2034 0108 0B       		.uleb128 0xb
+ 2035 0109 49       		.uleb128 0x49
+ 2036 010a 13       		.uleb128 0x13
+ 2037 010b 02       		.uleb128 0x2
+ 2038 010c 17       		.uleb128 0x17
+ 2039 010d 00       		.byte	0
+ 2040 010e 00       		.byte	0
+ 2041 010f 15       		.uleb128 0x15
+ 2042 0110 05       		.uleb128 0x5
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 43
+
+
+ 2043 0111 00       		.byte	0
+ 2044 0112 03       		.uleb128 0x3
+ 2045 0113 08       		.uleb128 0x8
+ 2046 0114 3A       		.uleb128 0x3a
+ 2047 0115 0B       		.uleb128 0xb
+ 2048 0116 3B       		.uleb128 0x3b
+ 2049 0117 0B       		.uleb128 0xb
+ 2050 0118 49       		.uleb128 0x49
+ 2051 0119 13       		.uleb128 0x13
+ 2052 011a 02       		.uleb128 0x2
+ 2053 011b 17       		.uleb128 0x17
+ 2054 011c 00       		.byte	0
+ 2055 011d 00       		.byte	0
+ 2056 011e 16       		.uleb128 0x16
+ 2057 011f 2E       		.uleb128 0x2e
+ 2058 0120 01       		.byte	0x1
+ 2059 0121 3F       		.uleb128 0x3f
+ 2060 0122 19       		.uleb128 0x19
+ 2061 0123 03       		.uleb128 0x3
+ 2062 0124 0E       		.uleb128 0xe
+ 2063 0125 3A       		.uleb128 0x3a
+ 2064 0126 0B       		.uleb128 0xb
+ 2065 0127 3B       		.uleb128 0x3b
+ 2066 0128 0B       		.uleb128 0xb
+ 2067 0129 49       		.uleb128 0x49
+ 2068 012a 13       		.uleb128 0x13
+ 2069 012b 8701     		.uleb128 0x87
+ 2070 012d 19       		.uleb128 0x19
+ 2071 012e 11       		.uleb128 0x11
+ 2072 012f 01       		.uleb128 0x1
+ 2073 0130 12       		.uleb128 0x12
+ 2074 0131 06       		.uleb128 0x6
+ 2075 0132 40       		.uleb128 0x40
+ 2076 0133 18       		.uleb128 0x18
+ 2077 0134 9642     		.uleb128 0x2116
+ 2078 0136 19       		.uleb128 0x19
+ 2079 0137 01       		.uleb128 0x1
+ 2080 0138 13       		.uleb128 0x13
+ 2081 0139 00       		.byte	0
+ 2082 013a 00       		.byte	0
+ 2083 013b 17       		.uleb128 0x17
+ 2084 013c 34       		.uleb128 0x34
+ 2085 013d 00       		.byte	0
+ 2086 013e 03       		.uleb128 0x3
+ 2087 013f 08       		.uleb128 0x8
+ 2088 0140 3A       		.uleb128 0x3a
+ 2089 0141 0B       		.uleb128 0xb
+ 2090 0142 3B       		.uleb128 0x3b
+ 2091 0143 0B       		.uleb128 0xb
+ 2092 0144 49       		.uleb128 0x49
+ 2093 0145 13       		.uleb128 0x13
+ 2094 0146 02       		.uleb128 0x2
+ 2095 0147 17       		.uleb128 0x17
+ 2096 0148 00       		.byte	0
+ 2097 0149 00       		.byte	0
+ 2098 014a 18       		.uleb128 0x18
+ 2099 014b 0B       		.uleb128 0xb
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 44
+
+
+ 2100 014c 01       		.byte	0x1
+ 2101 014d 11       		.uleb128 0x11
+ 2102 014e 01       		.uleb128 0x1
+ 2103 014f 12       		.uleb128 0x12
+ 2104 0150 06       		.uleb128 0x6
+ 2105 0151 01       		.uleb128 0x1
+ 2106 0152 13       		.uleb128 0x13
+ 2107 0153 00       		.byte	0
+ 2108 0154 00       		.byte	0
+ 2109 0155 19       		.uleb128 0x19
+ 2110 0156 34       		.uleb128 0x34
+ 2111 0157 00       		.byte	0
+ 2112 0158 03       		.uleb128 0x3
+ 2113 0159 0E       		.uleb128 0xe
+ 2114 015a 3A       		.uleb128 0x3a
+ 2115 015b 0B       		.uleb128 0xb
+ 2116 015c 3B       		.uleb128 0x3b
+ 2117 015d 05       		.uleb128 0x5
+ 2118 015e 49       		.uleb128 0x49
+ 2119 015f 13       		.uleb128 0x13
+ 2120 0160 3F       		.uleb128 0x3f
+ 2121 0161 19       		.uleb128 0x19
+ 2122 0162 3C       		.uleb128 0x3c
+ 2123 0163 19       		.uleb128 0x19
+ 2124 0164 00       		.byte	0
+ 2125 0165 00       		.byte	0
+ 2126 0166 1A       		.uleb128 0x1a
+ 2127 0167 34       		.uleb128 0x34
+ 2128 0168 00       		.byte	0
+ 2129 0169 03       		.uleb128 0x3
+ 2130 016a 0E       		.uleb128 0xe
+ 2131 016b 3A       		.uleb128 0x3a
+ 2132 016c 0B       		.uleb128 0xb
+ 2133 016d 3B       		.uleb128 0x3b
+ 2134 016e 0B       		.uleb128 0xb
+ 2135 016f 49       		.uleb128 0x49
+ 2136 0170 13       		.uleb128 0x13
+ 2137 0171 3F       		.uleb128 0x3f
+ 2138 0172 19       		.uleb128 0x19
+ 2139 0173 02       		.uleb128 0x2
+ 2140 0174 18       		.uleb128 0x18
+ 2141 0175 00       		.byte	0
+ 2142 0176 00       		.byte	0
+ 2143 0177 1B       		.uleb128 0x1b
+ 2144 0178 2E       		.uleb128 0x2e
+ 2145 0179 00       		.byte	0
+ 2146 017a 3F       		.uleb128 0x3f
+ 2147 017b 19       		.uleb128 0x19
+ 2148 017c 3C       		.uleb128 0x3c
+ 2149 017d 19       		.uleb128 0x19
+ 2150 017e 6E       		.uleb128 0x6e
+ 2151 017f 0E       		.uleb128 0xe
+ 2152 0180 03       		.uleb128 0x3
+ 2153 0181 0E       		.uleb128 0xe
+ 2154 0182 3A       		.uleb128 0x3a
+ 2155 0183 0B       		.uleb128 0xb
+ 2156 0184 3B       		.uleb128 0x3b
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 45
+
+
+ 2157 0185 05       		.uleb128 0x5
+ 2158 0186 00       		.byte	0
+ 2159 0187 00       		.byte	0
+ 2160 0188 1C       		.uleb128 0x1c
+ 2161 0189 2E       		.uleb128 0x2e
+ 2162 018a 00       		.byte	0
+ 2163 018b 3F       		.uleb128 0x3f
+ 2164 018c 19       		.uleb128 0x19
+ 2165 018d 3C       		.uleb128 0x3c
+ 2166 018e 19       		.uleb128 0x19
+ 2167 018f 6E       		.uleb128 0x6e
+ 2168 0190 0E       		.uleb128 0xe
+ 2169 0191 03       		.uleb128 0x3
+ 2170 0192 0E       		.uleb128 0xe
+ 2171 0193 3A       		.uleb128 0x3a
+ 2172 0194 0B       		.uleb128 0xb
+ 2173 0195 3B       		.uleb128 0x3b
+ 2174 0196 0B       		.uleb128 0xb
+ 2175 0197 00       		.byte	0
+ 2176 0198 00       		.byte	0
+ 2177 0199 00       		.byte	0
+ 2178              		.section	.debug_loc,"",%progbits
+ 2179              	.Ldebug_loc0:
+ 2180              	.LLST0:
+ 2181 0000 5E000000 		.4byte	.LVL7
+ 2182 0004 63000000 		.4byte	.LVL8-1
+ 2183 0008 0100     		.2byte	0x1
+ 2184 000a 50       		.byte	0x50
+ 2185 000b 00000000 		.4byte	0
+ 2186 000f 00000000 		.4byte	0
+ 2187              	.LLST1:
+ 2188 0013 00000000 		.4byte	.LVL11
+ 2189 0017 12000000 		.4byte	.LVL13
+ 2190 001b 0100     		.2byte	0x1
+ 2191 001d 50       		.byte	0x50
+ 2192 001e 12000000 		.4byte	.LVL13
+ 2193 0022 15000000 		.4byte	.LVL14-1
+ 2194 0026 0100     		.2byte	0x1
+ 2195 0028 51       		.byte	0x51
+ 2196 0029 15000000 		.4byte	.LVL14-1
+ 2197 002d 54000000 		.4byte	.LFE64
+ 2198 0031 0400     		.2byte	0x4
+ 2199 0033 F3       		.byte	0xf3
+ 2200 0034 01       		.uleb128 0x1
+ 2201 0035 50       		.byte	0x50
+ 2202 0036 9F       		.byte	0x9f
+ 2203 0037 00000000 		.4byte	0
+ 2204 003b 00000000 		.4byte	0
+ 2205              	.LLST2:
+ 2206 003f 00000000 		.4byte	.LVL11
+ 2207 0043 10000000 		.4byte	.LVL12
+ 2208 0047 0100     		.2byte	0x1
+ 2209 0049 51       		.byte	0x51
+ 2210 004a 10000000 		.4byte	.LVL12
+ 2211 004e 4A000000 		.4byte	.LVL21
+ 2212 0052 0100     		.2byte	0x1
+ 2213 0054 55       		.byte	0x55
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 46
+
+
+ 2214 0055 4A000000 		.4byte	.LVL21
+ 2215 0059 54000000 		.4byte	.LFE64
+ 2216 005d 0400     		.2byte	0x4
+ 2217 005f F3       		.byte	0xf3
+ 2218 0060 01       		.uleb128 0x1
+ 2219 0061 51       		.byte	0x51
+ 2220 0062 9F       		.byte	0x9f
+ 2221 0063 00000000 		.4byte	0
+ 2222 0067 00000000 		.4byte	0
+ 2223              	.LLST3:
+ 2224 006b 00000000 		.4byte	.LVL11
+ 2225 006f 15000000 		.4byte	.LVL14-1
+ 2226 0073 0100     		.2byte	0x1
+ 2227 0075 52       		.byte	0x52
+ 2228 0076 15000000 		.4byte	.LVL14-1
+ 2229 007a 4A000000 		.4byte	.LVL21
+ 2230 007e 0100     		.2byte	0x1
+ 2231 0080 56       		.byte	0x56
+ 2232 0081 4A000000 		.4byte	.LVL21
+ 2233 0085 54000000 		.4byte	.LFE64
+ 2234 0089 0400     		.2byte	0x4
+ 2235 008b F3       		.byte	0xf3
+ 2236 008c 01       		.uleb128 0x1
+ 2237 008d 52       		.byte	0x52
+ 2238 008e 9F       		.byte	0x9f
+ 2239 008f 00000000 		.4byte	0
+ 2240 0093 00000000 		.4byte	0
+ 2241              	.LLST4:
+ 2242 0097 00000000 		.4byte	.LVL11
+ 2243 009b 15000000 		.4byte	.LVL14-1
+ 2244 009f 0100     		.2byte	0x1
+ 2245 00a1 53       		.byte	0x53
+ 2246 00a2 15000000 		.4byte	.LVL14-1
+ 2247 00a6 4A000000 		.4byte	.LVL21
+ 2248 00aa 0100     		.2byte	0x1
+ 2249 00ac 57       		.byte	0x57
+ 2250 00ad 4A000000 		.4byte	.LVL21
+ 2251 00b1 54000000 		.4byte	.LFE64
+ 2252 00b5 0600     		.2byte	0x6
+ 2253 00b7 F3       		.byte	0xf3
+ 2254 00b8 03       		.uleb128 0x3
+ 2255 00b9 F5       		.byte	0xf5
+ 2256 00ba 03       		.uleb128 0x3
+ 2257 00bb 25       		.uleb128 0x25
+ 2258 00bc 9F       		.byte	0x9f
+ 2259 00bd 00000000 		.4byte	0
+ 2260 00c1 00000000 		.4byte	0
+ 2261              	.LLST5:
+ 2262 00c5 00000000 		.4byte	.LVL11
+ 2263 00c9 4A000000 		.4byte	.LVL21
+ 2264 00cd 0200     		.2byte	0x2
+ 2265 00cf 91       		.byte	0x91
+ 2266 00d0 00       		.sleb128 0
+ 2267 00d1 4A000000 		.4byte	.LVL21
+ 2268 00d5 54000000 		.4byte	.LFE64
+ 2269 00d9 0200     		.2byte	0x2
+ 2270 00db 7D       		.byte	0x7d
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 47
+
+
+ 2271 00dc 00       		.sleb128 0
+ 2272 00dd 00000000 		.4byte	0
+ 2273 00e1 00000000 		.4byte	0
+ 2274              	.LLST6:
+ 2275 00e5 2E000000 		.4byte	.LVL29
+ 2276 00e9 42000000 		.4byte	.LVL31
+ 2277 00ed 0600     		.2byte	0x6
+ 2278 00ef 9E       		.byte	0x9e
+ 2279 00f0 04       		.uleb128 0x4
+ 2280 00f1 00000000 		.4byte	0
+ 2281 00f5 AC000000 		.4byte	.LVL47
+ 2282 00f9 C8000000 		.4byte	.LVL48
+ 2283 00fd 0100     		.2byte	0x1
+ 2284 00ff 50       		.byte	0x50
+ 2285 0100 C8000000 		.4byte	.LVL48
+ 2286 0104 D4010000 		.4byte	.LVL76
+ 2287 0108 0100     		.2byte	0x1
+ 2288 010a 54       		.byte	0x54
+ 2289 010b 00000000 		.4byte	0
+ 2290 010f 00000000 		.4byte	0
+ 2291              	.LLST7:
+ 2292 0113 70000000 		.4byte	.LVL35
+ 2293 0117 74000000 		.4byte	.LVL36
+ 2294 011b 0200     		.2byte	0x2
+ 2295 011d 30       		.byte	0x30
+ 2296 011e 9F       		.byte	0x9f
+ 2297 011f 74000000 		.4byte	.LVL36
+ 2298 0123 30020000 		.4byte	.LVL88
+ 2299 0127 0100     		.2byte	0x1
+ 2300 0129 56       		.byte	0x56
+ 2301 012a 32020000 		.4byte	.LVL89
+ 2302 012e C8020000 		.4byte	.LFE66
+ 2303 0132 0100     		.2byte	0x1
+ 2304 0134 56       		.byte	0x56
+ 2305 0135 00000000 		.4byte	0
+ 2306 0139 00000000 		.4byte	0
+ 2307              	.LLST8:
+ 2308 013d AC000000 		.4byte	.LVL47
+ 2309 0141 C8000000 		.4byte	.LVL48
+ 2310 0145 0800     		.2byte	0x8
+ 2311 0147 F5       		.byte	0xf5
+ 2312 0148 00       		.uleb128 0
+ 2313 0149 25       		.uleb128 0x25
+ 2314 014a F7       		.byte	0xf7
+ 2315 014b 3A       		.uleb128 0x3a
+ 2316 014c F7       		.byte	0xf7
+ 2317 014d 00       		.uleb128 0
+ 2318 014e 9F       		.byte	0x9f
+ 2319 014f C8000000 		.4byte	.LVL48
+ 2320 0153 D4010000 		.4byte	.LVL76
+ 2321 0157 0800     		.2byte	0x8
+ 2322 0159 F5       		.byte	0xf5
+ 2323 015a 04       		.uleb128 0x4
+ 2324 015b 25       		.uleb128 0x25
+ 2325 015c F7       		.byte	0xf7
+ 2326 015d 3A       		.uleb128 0x3a
+ 2327 015e F7       		.byte	0xf7
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 48
+
+
+ 2328 015f 00       		.uleb128 0
+ 2329 0160 9F       		.byte	0x9f
+ 2330 0161 00000000 		.4byte	0
+ 2331 0165 00000000 		.4byte	0
+ 2332              	.LLST9:
+ 2333 0169 2E000000 		.4byte	.LVL29
+ 2334 016d 42000000 		.4byte	.LVL31
+ 2335 0171 0200     		.2byte	0x2
+ 2336 0173 30       		.byte	0x30
+ 2337 0174 9F       		.byte	0x9f
+ 2338 0175 42000000 		.4byte	.LVL31
+ 2339 0179 60000000 		.4byte	.LVL34
+ 2340 017d 0100     		.2byte	0x1
+ 2341 017f 5A       		.byte	0x5a
+ 2342 0180 60000000 		.4byte	.LVL34
+ 2343 0184 70000000 		.4byte	.LVL35
+ 2344 0188 0200     		.2byte	0x2
+ 2345 018a 30       		.byte	0x30
+ 2346 018b 9F       		.byte	0x9f
+ 2347 018c 70000000 		.4byte	.LVL35
+ 2348 0190 C8020000 		.4byte	.LFE66
+ 2349 0194 0100     		.2byte	0x1
+ 2350 0196 5A       		.byte	0x5a
+ 2351 0197 00000000 		.4byte	0
+ 2352 019b 00000000 		.4byte	0
+ 2353              	.LLST10:
+ 2354 019f 8E000000 		.4byte	.LVL40
+ 2355 01a3 AC000000 		.4byte	.LVL47
+ 2356 01a7 0100     		.2byte	0x1
+ 2357 01a9 54       		.byte	0x54
+ 2358 01aa 00000000 		.4byte	0
+ 2359 01ae 00000000 		.4byte	0
+ 2360              	.LLST11:
+ 2361 01b2 A2000000 		.4byte	.LVL44
+ 2362 01b6 A6000000 		.4byte	.LVL45
+ 2363 01ba 0900     		.2byte	0x9
+ 2364 01bc 70       		.byte	0x70
+ 2365 01bd 00       		.sleb128 0
+ 2366 01be 09       		.byte	0x9
+ 2367 01bf F2       		.byte	0xf2
+ 2368 01c0 24       		.byte	0x24
+ 2369 01c1 09       		.byte	0x9
+ 2370 01c2 F4       		.byte	0xf4
+ 2371 01c3 25       		.byte	0x25
+ 2372 01c4 9F       		.byte	0x9f
+ 2373 01c5 A6000000 		.4byte	.LVL45
+ 2374 01c9 AC000000 		.4byte	.LVL47
+ 2375 01cd 2000     		.2byte	0x20
+ 2376 01cf 74       		.byte	0x74
+ 2377 01d0 00       		.sleb128 0
+ 2378 01d1 F7       		.byte	0xf7
+ 2379 01d2 33       		.uleb128 0x33
+ 2380 01d3 F7       		.byte	0xf7
+ 2381 01d4 2C       		.uleb128 0x2c
+ 2382 01d5 F4       		.byte	0xf4
+ 2383 01d6 2C       		.uleb128 0x2c
+ 2384 01d7 08       		.byte	0x8
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 49
+
+
+ 2385 01d8 CDCCCCCC 		.8byte	0xcccccccd
+ 2385      00000000 
+ 2386 01e0 1E       		.byte	0x1e
+ 2387 01e1 08       		.byte	0x8
+ 2388 01e2 20       		.byte	0x20
+ 2389 01e3 F7       		.byte	0xf7
+ 2390 01e4 2C       		.uleb128 0x2c
+ 2391 01e5 25       		.byte	0x25
+ 2392 01e6 F7       		.byte	0xf7
+ 2393 01e7 33       		.uleb128 0x33
+ 2394 01e8 09       		.byte	0x9
+ 2395 01e9 F2       		.byte	0xf2
+ 2396 01ea 24       		.byte	0x24
+ 2397 01eb 09       		.byte	0x9
+ 2398 01ec F4       		.byte	0xf4
+ 2399 01ed 25       		.byte	0x25
+ 2400 01ee 9F       		.byte	0x9f
+ 2401 01ef 00000000 		.4byte	0
+ 2402 01f3 00000000 		.4byte	0
+ 2403              	.LLST12:
+ 2404 01f7 8E000000 		.4byte	.LVL40
+ 2405 01fb 80010000 		.4byte	.LVL69
+ 2406 01ff 0100     		.2byte	0x1
+ 2407 0201 55       		.byte	0x55
+ 2408 0202 00000000 		.4byte	0
+ 2409 0206 00000000 		.4byte	0
+ 2410              		.section	.debug_aranges,"",%progbits
+ 2411 0000 34000000 		.4byte	0x34
+ 2412 0004 0200     		.2byte	0x2
+ 2413 0006 00000000 		.4byte	.Ldebug_info0
+ 2414 000a 04       		.byte	0x4
+ 2415 000b 00       		.byte	0
+ 2416 000c 0000     		.2byte	0
+ 2417 000e 0000     		.2byte	0
+ 2418 0010 00000000 		.4byte	.LFB67
+ 2419 0014 24000000 		.4byte	.LFE67-.LFB67
+ 2420 0018 00000000 		.4byte	.LFB65
+ 2421 001c 88000000 		.4byte	.LFE65-.LFB65
+ 2422 0020 00000000 		.4byte	.LFB64
+ 2423 0024 54000000 		.4byte	.LFE64-.LFB64
+ 2424 0028 00000000 		.4byte	.LFB66
+ 2425 002c C8020000 		.4byte	.LFE66-.LFB66
+ 2426 0030 00000000 		.4byte	0
+ 2427 0034 00000000 		.4byte	0
+ 2428              		.section	.debug_ranges,"",%progbits
+ 2429              	.Ldebug_ranges0:
+ 2430 0000 00000000 		.4byte	.LFB67
+ 2431 0004 24000000 		.4byte	.LFE67
+ 2432 0008 00000000 		.4byte	.LFB65
+ 2433 000c 88000000 		.4byte	.LFE65
+ 2434 0010 00000000 		.4byte	.LFB64
+ 2435 0014 54000000 		.4byte	.LFE64
+ 2436 0018 00000000 		.4byte	.LFB66
+ 2437 001c C8020000 		.4byte	.LFE66
+ 2438 0020 00000000 		.4byte	0
+ 2439 0024 00000000 		.4byte	0
+ 2440              		.section	.debug_line,"",%progbits
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 50
+
+
+ 2441              	.Ldebug_line0:
+ 2442 0000 F5020000 		.section	.debug_str,"MS",%progbits,1
+ 2442      02001C02 
+ 2442      00000201 
+ 2442      FB0E0D00 
+ 2442      01010101 
+ 2443              	.LASF64:
+ 2444 0000 706F7766 		.ascii	"powf\000"
+ 2444      00
+ 2445              	.LASF67:
+ 2446 0005 4144435F 		.ascii	"ADC_SAR_1_Start\000"
+ 2446      5341525F 
+ 2446      315F5374 
+ 2446      61727400 
+ 2447              	.LASF35:
+ 2448 0015 43414E5F 		.ascii	"CAN_TX_STRUCT\000"
+ 2448      54585F53 
+ 2448      54525543 
+ 2448      5400
+ 2449              	.LASF21:
+ 2450 0023 43414E5F 		.ascii	"CAN_DATA_BYTES\000"
+ 2450      44415441 
+ 2450      5F425954 
+ 2450      455300
+ 2451              	.LASF12:
+ 2452 0032 696E7438 		.ascii	"int8_t\000"
+ 2452      5F7400
+ 2453              	.LASF39:
+ 2454 0039 6C617374 		.ascii	"lastbyte\000"
+ 2454      62797465 
+ 2454      00
+ 2455              	.LASF43:
+ 2456 0042 6F757470 		.ascii	"outputstring\000"
+ 2456      75747374 
+ 2456      72696E67 
+ 2456      00
+ 2457              	.LASF6:
+ 2458 004f 73686F72 		.ascii	"short int\000"
+ 2458      7420696E 
+ 2458      7400
+ 2459              	.LASF20:
+ 2460 0059 73697A65 		.ascii	"sizetype\000"
+ 2460      74797065 
+ 2460      00
+ 2461              	.LASF55:
+ 2462 0062 69737246 		.ascii	"isrFlag\000"
+ 2462      6C616700 
+ 2463              	.LASF78:
+ 2464 006a 6D61696E 		.ascii	"main\000"
+ 2464      00
+ 2465              	.LASF34:
+ 2466 006f 74786461 		.ascii	"txdata\000"
+ 2466      746100
+ 2467              	.LASF19:
+ 2468 0076 6C6F6E67 		.ascii	"long double\000"
+ 2468      20646F75 
+ 2468      626C6500 
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 51
+
+
+ 2469              	.LASF26:
+ 2470 0082 72786461 		.ascii	"rxdata\000"
+ 2470      746100
+ 2471              	.LASF45:
+ 2472 0089 6D6F6465 		.ascii	"mode\000"
+ 2472      00
+ 2473              	.LASF51:
+ 2474 008e 6D61785F 		.ascii	"max_temp\000"
+ 2474      74656D70 
+ 2474      00
+ 2475              	.LASF63:
+ 2476 0097 4144435F 		.ascii	"ADC_SAR_1_CountsTo_Volts\000"
+ 2476      5341525F 
+ 2476      315F436F 
+ 2476      756E7473 
+ 2476      546F5F56 
+ 2477              	.LASF69:
+ 2478 00b0 43414E5F 		.ascii	"CAN_Start\000"
+ 2478      53746172 
+ 2478      7400
+ 2479              	.LASF41:
+ 2480 00ba 55415254 		.ascii	"UART_STRING\000"
+ 2480      5F535452 
+ 2480      494E4700 
+ 2481              	.LASF42:
+ 2482 00c6 6D795F73 		.ascii	"my_string\000"
+ 2482      7472696E 
+ 2482      6700
+ 2483              	.LASF15:
+ 2484 00d0 75696E74 		.ascii	"uint16\000"
+ 2484      313600
+ 2485              	.LASF14:
+ 2486 00d7 75696E74 		.ascii	"uint8\000"
+ 2486      3800
+ 2487              	.LASF25:
+ 2488 00dd 72786964 		.ascii	"rxid\000"
+ 2488      00
+ 2489              	.LASF59:
+ 2490 00e2 4144435F 		.ascii	"ADC_SAR_1_GetResult16\000"
+ 2490      5341525F 
+ 2490      315F4765 
+ 2490      74526573 
+ 2490      756C7431 
+ 2491              	.LASF28:
+ 2492 00f8 72786163 		.ascii	"rxacr\000"
+ 2492      7200
+ 2493              	.LASF68:
+ 2494 00fe 55415254 		.ascii	"UART_1_Start\000"
+ 2494      5F315F53 
+ 2494      74617274 
+ 2494      00
+ 2495              	.LASF0:
+ 2496 010b 666C6F61 		.ascii	"float\000"
+ 2496      7400
+ 2497              	.LASF38:
+ 2498 0111 6C6F775F 		.ascii	"low_ind\000"
+ 2498      696E6400 
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 52
+
+
+ 2499              	.LASF11:
+ 2500 0119 6C6F6E67 		.ascii	"long long int\000"
+ 2500      206C6F6E 
+ 2500      6720696E 
+ 2500      7400
+ 2501              	.LASF32:
+ 2502 0127 7478636D 		.ascii	"txcmd\000"
+ 2502      6400
+ 2503              	.LASF9:
+ 2504 012d 6C6F6E67 		.ascii	"long int\000"
+ 2504      20696E74 
+ 2504      00
+ 2505              	.LASF44:
+ 2506 0136 766F6C74 		.ascii	"voltage\000"
+ 2506      61676500 
+ 2507              	.LASF33:
+ 2508 013e 74786964 		.ascii	"txid\000"
+ 2508      00
+ 2509              	.LASF22:
+ 2510 0143 62797465 		.ascii	"byte\000"
+ 2510      00
+ 2511              	.LASF36:
+ 2512 0148 6E756D5F 		.ascii	"num_ther\000"
+ 2512      74686572 
+ 2512      00
+ 2513              	.LASF29:
+ 2514 0151 7278616D 		.ascii	"rxamrd\000"
+ 2514      726400
+ 2515              	.LASF5:
+ 2516 0158 756E7369 		.ascii	"unsigned char\000"
+ 2516      676E6564 
+ 2516      20636861 
+ 2516      7200
+ 2517              	.LASF58:
+ 2518 0166 73707269 		.ascii	"sprintf\000"
+ 2518      6E746600 
+ 2519              	.LASF4:
+ 2520 016e 7369676E 		.ascii	"signed char\000"
+ 2520      65642063 
+ 2520      68617200 
+ 2521              	.LASF1:
+ 2522 017a 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 2522      206C6F6E 
+ 2522      6720756E 
+ 2522      7369676E 
+ 2522      65642069 
+ 2523              	.LASF2:
+ 2524 0191 756E7369 		.ascii	"unsigned int\000"
+ 2524      676E6564 
+ 2524      20696E74 
+ 2524      00
+ 2525              	.LASF53:
+ 2526 019e 6176675F 		.ascii	"avg_temp\000"
+ 2526      74656D70 
+ 2526      00
+ 2527              	.LASF10:
+ 2528 01a7 6C6F6E67 		.ascii	"long unsigned int\000"
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 53
+
+
+ 2528      20756E73 
+ 2528      69676E65 
+ 2528      6420696E 
+ 2528      7400
+ 2529              	.LASF52:
+ 2530 01b9 6D696E5F 		.ascii	"min_temp\000"
+ 2530      74656D70 
+ 2530      00
+ 2531              	.LASF3:
+ 2532 01c2 73686F72 		.ascii	"short unsigned int\000"
+ 2532      7420756E 
+ 2532      7369676E 
+ 2532      65642069 
+ 2532      6E7400
+ 2533              	.LASF70:
+ 2534 01d5 414D7578 		.ascii	"AMux_Start\000"
+ 2534      5F537461 
+ 2534      727400
+ 2535              	.LASF7:
+ 2536 01e0 5F5F696E 		.ascii	"__int8_t\000"
+ 2536      74385F74 
+ 2536      00
+ 2537              	.LASF30:
+ 2538 01e9 72786163 		.ascii	"rxacrd\000"
+ 2538      726400
+ 2539              	.LASF17:
+ 2540 01f0 63686172 		.ascii	"char\000"
+ 2540      00
+ 2541              	.LASF31:
+ 2542 01f5 43414E5F 		.ascii	"CAN_RX_STRUCT\000"
+ 2542      52585F53 
+ 2542      54525543 
+ 2542      5400
+ 2543              	.LASF61:
+ 2544 0203 4144435F 		.ascii	"ADC_SAR_1_StartConvert\000"
+ 2544      5341525F 
+ 2544      315F5374 
+ 2544      61727443 
+ 2544      6F6E7665 
+ 2545              	.LASF13:
+ 2546 021a 696E7433 		.ascii	"int32_t\000"
+ 2546      325F7400 
+ 2547              	.LASF24:
+ 2548 0222 7278636D 		.ascii	"rxcmd\000"
+ 2548      6400
+ 2549              	.LASF37:
+ 2550 0228 68695F69 		.ascii	"hi_ind\000"
+ 2550      6E6400
+ 2551              	.LASF62:
+ 2552 022f 4144435F 		.ascii	"ADC_SAR_1_IsEndConversion\000"
+ 2552      5341525F 
+ 2552      315F4973 
+ 2552      456E6443 
+ 2552      6F6E7665 
+ 2553              	.LASF23:
+ 2554 0249 43414E5F 		.ascii	"CAN_REG_32\000"
+ 2554      5245475F 
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 54
+
+
+ 2554      333200
+ 2555              	.LASF46:
+ 2556 0254 72657356 		.ascii	"resVolts\000"
+ 2556      6F6C7473 
+ 2556      00
+ 2557              	.LASF72:
+ 2558 025d 54696D65 		.ascii	"Timer_Int_StartEx\000"
+ 2558      725F496E 
+ 2558      745F5374 
+ 2558      61727445 
+ 2558      7800
+ 2559              	.LASF75:
+ 2560 026f 6D61696E 		.ascii	"main.c\000"
+ 2560      2E6300
+ 2561              	.LASF18:
+ 2562 0276 72656738 		.ascii	"reg8\000"
+ 2562      00
+ 2563              	.LASF66:
+ 2564 027b 4144435F 		.ascii	"ADC_SAR_1_StopConvert\000"
+ 2564      5341525F 
+ 2564      315F5374 
+ 2564      6F70436F 
+ 2564      6E766572 
+ 2565              	.LASF16:
+ 2566 0291 646F7562 		.ascii	"double\000"
+ 2566      6C6500
+ 2567              	.LASF57:
+ 2568 0298 55415254 		.ascii	"UART_1_PutString\000"
+ 2568      5F315F50 
+ 2568      75745374 
+ 2568      72696E67 
+ 2568      00
+ 2569              	.LASF76:
+ 2570 02a9 433A5C55 		.ascii	"C:\\Users\\shiyu\\Documents\\GitHub\\MUR\\MCU_PSOC\\"
+ 2570      73657273 
+ 2570      5C736869 
+ 2570      79755C44 
+ 2570      6F63756D 
+ 2571 02d6 4272616E 		.ascii	"Branches\\NOV\\PCB_CAN_ORION_Interrupt_PSOC_A_5\\SA"
+ 2571      63686573 
+ 2571      5C4E4F56 
+ 2571      5C504342 
+ 2571      5F43414E 
+ 2572 0306 52204578 		.ascii	"R Example.cydsn\000"
+ 2572      616D706C 
+ 2572      652E6379 
+ 2572      64736E00 
+ 2573              	.LASF50:
+ 2574 0316 73776974 		.ascii	"switchState\000"
+ 2574      63685374 
+ 2574      61746500 
+ 2575              	.LASF40:
+ 2576 0322 54696D65 		.ascii	"Timer_Int_Handler\000"
+ 2576      725F496E 
+ 2576      745F4861 
+ 2576      6E646C65 
+ 2576      7200
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 55
+
+
+ 2577              	.LASF71:
+ 2578 0334 54696D65 		.ascii	"Timer_Start\000"
+ 2578      725F5374 
+ 2578      61727400 
+ 2579              	.LASF56:
+ 2580 0340 43414E5F 		.ascii	"CAN_SendMsgADCdata\000"
+ 2580      53656E64 
+ 2580      4D736741 
+ 2580      44436461 
+ 2580      746100
+ 2581              	.LASF8:
+ 2582 0353 5F5F696E 		.ascii	"__int32_t\000"
+ 2582      7433325F 
+ 2582      7400
+ 2583              	.LASF77:
+ 2584 035d 4953525F 		.ascii	"ISR_CAN\000"
+ 2584      43414E00 
+ 2585              	.LASF73:
+ 2586 0365 4379496E 		.ascii	"CyIntSetVector\000"
+ 2586      74536574 
+ 2586      56656374 
+ 2586      6F7200
+ 2587              	.LASF60:
+ 2588 0374 414D7578 		.ascii	"AMux_FastSelect\000"
+ 2588      5F466173 
+ 2588      7453656C 
+ 2588      65637400 
+ 2589              	.LASF54:
+ 2590 0384 54656D70 		.ascii	"Temperature\000"
+ 2590      65726174 
+ 2590      75726500 
+ 2591              	.LASF49:
+ 2592 0390 49544D5F 		.ascii	"ITM_RxBuffer\000"
+ 2592      52784275 
+ 2592      66666572 
+ 2592      00
+ 2593              	.LASF74:
+ 2594 039d 474E5520 		.ascii	"GNU C11 5.4.1 20160609 (release) [ARM/embedded-5-br"
+ 2594      43313120 
+ 2594      352E342E 
+ 2594      31203230 
+ 2594      31363036 
+ 2595 03d0 616E6368 		.ascii	"anch revision 237715] -mcpu=cortex-m3 -mthumb -g -O"
+ 2595      20726576 
+ 2595      6973696F 
+ 2595      6E203233 
+ 2595      37373135 
+ 2596 0403 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 2596      66756E63 
+ 2596      74696F6E 
+ 2596      2D736563 
+ 2596      74696F6E 
+ 2597              	.LASF65:
+ 2598 042b 43794465 		.ascii	"CyDelay\000"
+ 2598      6C617900 
+ 2599              	.LASF27:
+ 2600 0433 7278616D 		.ascii	"rxamr\000"
+ARM GAS  C:\Users\shiyu\AppData\Local\Temp\ccQNMXHz.s 			page 56
+
+
+ 2600      7200
+ 2601              	.LASF48:
+ 2602 0439 61766572 		.ascii	"average\000"
+ 2602      61676500 
+ 2603              	.LASF47:
+ 2604 0441 72656672 		.ascii	"refresh_count\000"
+ 2604      6573685F 
+ 2604      636F756E 
+ 2604      7400
+ 2605              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160609 (release) [ARM/embedded-5-bran

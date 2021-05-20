@@ -1,0 +1,6 @@
+C:\Users\shiyu\Documents\GitHub\MUR\MCU_PSOC\Branches\NOV\PCB_CAN_ORION_Interrupt_PSOC_A_5\SAR Example.cydsn\SAR Example.cyprj|a0a2b53e-535c-4cbe-ab1e-3e7a5c3d5a5e
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\default\CyAnnotationLibrary\CyAnnotationLibrary.cylib\CyAnnotationLibrary.cyprj|04a5221c-1c52-4e9d-b5d0-575d22415f33
+C:\Users\shiyu\Documents\PSoC Creator\4.2\Downloads ( 4.2).cylib\Downloads ( 4.2).cyprj|616abae7-f706-4a52-816a-bab91696c5c3
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\cycomponentlibraryupdates\CyComponentLibraryUpdates.cylib\CyComponentLibraryUpdates.cyprj|96b5e6e9-47a1-46ea-8d4a-44572c20f3f0
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\cycomponentlibrary\CyComponentLibrary.cylib\CyComponentLibrary.cyprj|705d7aa2-25bf-46b0-88aa-afeba3358942
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\cyprimitives\CyPrimitives.cylib\CyPrimitives.cyprj|1400234f-245a-4798-9605-994fda125998
